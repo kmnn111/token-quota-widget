@@ -11,3 +11,6 @@ runtime/
 settings.local.json
 *.cookie
 .env
+
+# 截图临时产物
+shot-out/
