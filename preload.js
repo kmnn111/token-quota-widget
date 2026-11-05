@@ -14,5 +14,5 @@ contextBridge.exposeInMainWorld('quota', {
   winDragEnd: () => ipcRenderer.send('win:drag-end'),
   winAction: (act) => ipcRenderer.send('win:action', act),
   openExternal: (url) => ipcRenderer.invoke('ext:open', url),
-  version: '0.1.0'
+  version: '0.2.1'
 });

@@ -24,6 +24,13 @@ const TOOLS = [
 /* 粗略价目（USD / 百万 token，输入:输出），可在设置里覆盖 */
 const DEFAULT_PRICES = { in: 3, out: 15 };
 
+/* 本地日期键（与渲染层热力图同口径）：必须用本地时区，toISOString 的 UTC 日会错位 */
+function localYmd(v) {
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d)) return null;
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 function walkJsonl(root, cb, budget) {
   let n = 0;
   let stack;
@@ -63,8 +70,8 @@ function scanTool(tool, dayBudget) {
         const t = (u.input_tokens || u.inputTokens || 0) + (u.output_tokens || u.outputTokens || 0)
           + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0);
         if (!t) continue;
-        const ts = j.timestamp || j.created_at || j.time || (mtime ? new Date(mtime).toISOString() : null);
-        const ymd = ts ? String(ts).slice(0, 10) : null;
+        const ts = j.timestamp || j.created_at || j.time || mtime || null;
+        const ymd = ts ? localYmd(ts) : null;
         dayTokens += t; total += t;
         if (ymd) perDay.set(ymd, (perDay.get(ymd) || 0) + t);
       }
@@ -99,7 +106,7 @@ module.exports = {
     }
     if (!tools.length) throw Object.assign(new Error('本机未发现 Claude Code / Codex / WorkBuddy 会话日志'), { status: 'unconfigured' });
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localYmd(new Date());
     const month = today.slice(0, 7);
     let day = 0, monthT = 0;
     for (const [d, v] of perDayAll) {

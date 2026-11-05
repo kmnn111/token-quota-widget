@@ -67,9 +67,9 @@
           </div>
         </div>
         <div id="ghList"></div>
-        <div class="gh-foot" id="ghFoot">数据来自 GitHub Trending / Search · 每 30 分钟刷新 · 点击打开仓库页</div>
+        <div class="gh-foot" id="ghFoot">GitHub Trending · 国人开源优先 · 每 30 分钟刷新 · 点击打开仓库页</div>
       </div>
-      <div class="sig">额度窗 v0.1 · 本地优先 · 凭据只存本机</div>
+      <div class="sig">额度窗 v0.2 · 本地优先 · 凭据只存本机</div>
     </div>
 
     <!-- ================= 额度详情 ================= -->
@@ -119,6 +119,8 @@
         <input id="inRotate" type="number" min="3" max="30" value="5">
         <label>额度刷新间隔（分钟）</label>
         <input id="inRefresh" type="number" min="1" max="60" value="5">
+        <label class="chk"><input id="inTop" type="checkbox"> 窗口置顶（盖住其他程序）</label>
+        <div class="hint">默认关闭：小窗贴在桌面层，浏览器等程序可正常盖住它；开启后才始终浮在最前。</div>
         <div class="btnrow">
           <button id="btnSaveAppearance">保存</button>
           <button id="btnRefreshNow">立即刷新</button>
@@ -134,7 +136,7 @@
       <button class="mini" id="btnDock" title="收起为吸顶小窗">收起</button>
     </div>
 
-    <!-- ================= 吸顶胶囊：248×64 文字|logo|环形图（方案 B） ================= -->
+    <!-- ================= 吸顶胶囊：280×64 文字|logo|环形图（方案 B） ================= -->
     <div class="pill" id="pill">
       <div class="pmid">
         <div class="ptime" id="pTime">--:--<sup>--</sup></div>

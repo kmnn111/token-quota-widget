@@ -19,8 +19,8 @@ function demoSnapshot() {
         id: 'demo-mimo', name: 'MiMo Token Plan', color: '#ff8a4c', status: 'demo', plan: 'PRO',
         source: 'demo', updatedAt: Date.now(),
         windows: [
-          { label: '本月套餐', used: 7940000, limit: 20800000, leftPct: 62, unit: 'credits', resetAt: isoIn(12 * 3600 + 4 * 60), resetType: 'monthly' },
-          { label: '补偿积分', used: 0, limit: 2000000, leftPct: 100, unit: 'credits', resetAt: isoIn(12 * 3600 + 4 * 60), resetType: 'monthly' }
+          { label: '年度套餐', used: 7940000, limit: 20800000, leftPct: 62, unit: 'credits', resetAt: isoIn(286 * 86400), resetType: 'period' },
+          { label: '补偿积分', used: 0, limit: 2000000, leftPct: 100, unit: 'credits', resetAt: isoIn(2 * 86400), resetType: 'period' }
         ],
         balance: null
       },
@@ -52,14 +52,20 @@ function demoSnapshot() {
 function isoIn(sec) { return new Date(Date.now() + sec * 1000).toISOString(); }
 
 function demoUsage() {
+  /* 日期键用本地日（与活跃度热力图同口径，避免 UTC 错位） */
+  const ymd = (t) => {
+    const x = t instanceof Date ? t : new Date(t);
+    return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+  };
   const perDay = {};
   let d = new Date();
   for (let i = 0; i < 30; i++) {
-    perDay[d.toISOString().slice(0, 10)] = Math.round((Math.sin(i / 5) * 0.5 + 0.7) * 9e6 + i % 7 * 1.5e6);
+    perDay[ymd(d)] = Math.round((Math.sin(i / 5) * 0.5 + 0.7) * 9e6 + i % 7 * 1.5e6);
     d = new Date(d.getTime() - 864e5);
   }
-  const day = perDay[Object.keys(perDay)[0]];
-  let month = 0; for (const k in perDay) if (k.startsWith(new Date().toISOString().slice(0, 7))) month += perDay[k];
+  const today = ymd(new Date());
+  const day = perDay[today] || 0;
+  let month = 0; for (const k in perDay) if (k.startsWith(today.slice(0, 7))) month += perDay[k];
   return {
     day, month, total: month * 4.7,
     costDay: '¥104.20', costMonth: '¥2,931.00',

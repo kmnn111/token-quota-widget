@@ -24,7 +24,7 @@ const { createHub } = require('./providers/index.js');
 
 /* ---------------- 窗口几何常量（一切纠偏的唯一锚点） ---------------- */
 const DESIGN_W = 420, DESIGN_H = 840;
-const PILL_W = 248, PILL_H = 64;   // 与天气台 / 云上会议同规格
+const PILL_W = 280, PILL_H = 64;   // 吸顶胶囊（280 宽：文字|logo|环形图 三段舒展）
 const SNAP_IN = 26, SNAP_OUT = 90;
 const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
 
@@ -314,7 +314,8 @@ function createWindow() {
     if (!win || win.isDestroyed() || !settings.docked) return;
     if (!win.isMinimized()) return;
     try { win.showInactive(); } catch (e) { try { win.restore(); } catch (e2) { } }
-    try { win.moveTop(); } catch (e3) { }
+    /* 桌面部件模式（不置顶）下不用 moveTop：避免瞬时压到别的程序窗口上 */
+    if (settings.alwaysOnTop) { try { win.moveTop(); } catch (e3) { } }
     try { applyTopmost(); } catch (e4) { }
     if (settings.docked && !dockExpanded) setShapePill();
   };
@@ -393,15 +394,18 @@ function registerIpc() {
     }
     const next = {};
     for (const k of Object.keys(patch)) {
-      if (['docked', 'dockX', 'winPos', 'alwaysOnTop', 'edgeDock'].includes(k)) continue; // 几何态只由主进程写
+      if (['docked', 'dockX', 'winPos', 'edgeDock'].includes(k)) continue; // 几何态只由主进程写
       next[k] = patch[k];
     }
     Object.assign(settings, next);
     store.setInternal(next);
+    if ('alwaysOnTop' in next) applyTopmost();   // 设置页「窗口置顶」即时生效
     if (patch.trendingRange && hub) hub.refreshTrending();
     return store.publicView();
   });
 
+  let dragWatch = null;
+  function stopDragWatch() { if (dragWatch) { clearInterval(dragWatch); dragWatch = null; } }
   ipcMain.on('win:drag', (_e, sx, sy) => {
     if (!win || win.isDestroyed()) return;
     const b = win.getBounds();
@@ -409,8 +413,19 @@ function registerIpc() {
     const p = screen.getCursorScreenPoint();
     const nx = b.x + p.x - sx, ny = clamp(b.y + p.y - sy, wa.y - 0, wa.y + wa.height - PILL_H);
     setBoundsSafe({ x: nx, y: ny, width: baseSize.w, height: baseSize.h });
+    /* 左键松开看门狗：光标甩出窗口、mouseup 丢失时也能正常收尾（不粘拖） */
+    if (!dragWatch) {
+      let lbtn = null;
+      try { lbtn = require('koffi').load('user32.dll').func('GetAsyncKeyState', 'int', ['int']); } catch (e) { }
+      if (!lbtn) return;
+      dragWatch = setInterval(() => {
+        if (lbtn(0x01) & 0x8000) return;   // 左键仍按下
+        stopDragWatch();
+        checkSnap();
+      }, 120);
+    }
   });
-  ipcMain.on('win:drag-end', () => checkSnap());
+  ipcMain.on('win:drag-end', () => { stopDragWatch(); checkSnap(); });
   ipcMain.on('win:drag-start', () => { if (dockExpanded) { dockExpanded = false; sendDockState(); } });
 
   ipcMain.on('dock:hover', (_e, inside) => handleDockHover(!!inside));

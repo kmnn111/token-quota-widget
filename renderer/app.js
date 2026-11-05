@@ -126,23 +126,33 @@ function renderTools() {
 }
 
 /* ---------------- 热力图 ---------------- */
+function localYmd(ts) {
+  const d = ts instanceof Date ? ts : new Date(ts);
+  if (isNaN(d)) return null;
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 function renderHeat() {
   const u = snap && snap.snapshot && snap.snapshot.usage;
   const perDay = u && u.perDay || {};
   const days = [];
   for (let i = 29; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 864e5).toISOString().slice(0, 10);
+    const d = localYmd(new Date(Date.now() - i * 864e5));
     days.push(perDay[d] || 0);
   }
   const max = Math.max(1, ...days);
+  const active = days.filter(v => v > 0).length;
+  if (!active) {
+    $('heat').innerHTML = '<div style="font-size:10px;color:var(--ink3);padding:14px 0 10px;text-align:center">近 30 天暂无活跃记录 · 使用 AI 编码工具后这里会亮起来</div>';
+    $('heatMeta').textContent = '暂无记录';
+    return;
+  }
   const cells = days.map((v, i) => {
     const a = v > 0 ? 0.15 + 0.85 * (v / max) : 0.06;
     const fill = v > 0 ? `rgba(95,199,190,${a.toFixed(2)})` : 'rgba(255,255,255,.06)';
     return `<rect x="${(i % 6) * 21}" y="${Math.floor(i / 6) * 17}" width="18" height="14" rx="4" fill="${fill}"><title>${fmtTokens(v)}</title></rect>`;
   }).join('');
   $('heat').innerHTML = `<svg viewBox="0 0 126 82" height="82">${cells}</svg>`;
-  const active = days.filter(v => v > 0).length;
-  $('heatMeta').textContent = '近 30 天 ' + active + ' 天活跃';
+  $('heatMeta').textContent = '近 30 天 · ' + active + ' 天活跃';
 }
 
 /* ---------------- AI 热榜 ---------------- */
@@ -153,9 +163,10 @@ function renderTrending() {
     <div class="gh-item" data-repo="${esc(it.repo)}">
       <span class="gh-n">${String(i + 1).padStart(2, '0')}</span>
       <span class="gh-main"><b>${esc(it.repo)}</b><i>${esc(it.desc || '')}</i></span>
+      ${it.tag ? `<span class="gh-tag">${esc(it.tag)}</span>` : ''}
       <span class="gh-star">${esc(it.stars || '')}</span>
     </div>`).join('');
-  $('ghFoot').textContent = (t.demo ? '演示数据（网络不可达）' : t.stale ? '网络失败 · 沿用上次结果' : '数据来自 GitHub Trending / Search')
+  $('ghFoot').textContent = (t.demo ? '演示数据（网络不可达）' : t.stale ? '网络失败 · 沿用上次结果' : 'GitHub Trending · 国人开源优先')
     + ' · 每 30 分钟刷新 · 点击打开仓库页';
   $('ghList').querySelectorAll('.gh-item').forEach(el => {
     el.addEventListener('click', () => window.quota.openExternal('https://github.com/' + el.dataset.repo));
@@ -296,6 +307,7 @@ window.quota.getSettings().then(s => {
   $('inTheme').value = settings.theme || 'dark';
   $('inRotate').value = settings.rotateSeconds || 5;
   $('inRefresh').value = settings.refreshMinutes || 5;
+  $('inTop').checked = !!settings.alwaysOnTop;
   const provs = settings.providers || [];
   const mimo = provs.find(p => p.type === 'mimo');
   $('mimoState').textContent = mimo ? (mimo.hasApiKey ? '已配置 · API Key' : mimo.hasCookie ? '已配置 · Cookie' : '未配置') : '未配置';
@@ -305,7 +317,7 @@ window.quota.getSettings().then(s => {
     $('inCustomUrl').value = custom.url || '';
     $('inCustomMap').value = custom.map ? Object.entries(custom.map).map(([k, v]) => k + '=' + v).join(', ') : '';
   }
-});
+}).catch(() => { /* 设置读取失败不阻塞界面 */ });
 $('btnRefreshNow').addEventListener('click', () => window.quota.refresh());
 
 /* ---------------- 交互 ---------------- */
@@ -380,11 +392,50 @@ $('btnSaveAppearance').addEventListener('click', () => {
   settings.theme = $('inTheme').value;
   settings.rotateSeconds = Number($('inRotate').value) || 5;
   settings.refreshMinutes = Number($('inRefresh').value) || 5;
+  settings.alwaysOnTop = $('inTop').checked;
   document.body.classList.toggle('dark', settings.theme === 'dark');
   window.quota.updateSettings({
-    theme: settings.theme, rotateSeconds: settings.rotateSeconds, refreshMinutes: settings.refreshMinutes
+    theme: settings.theme, rotateSeconds: settings.rotateSeconds, refreshMinutes: settings.refreshMinutes,
+    alwaysOnTop: settings.alwaysOnTop
   }).then(() => restartRotate());
 });
+
+/* ---------------- 手动窗口拖拽（透明窗 app-region 会吞点击，改为手动） ---------------- */
+let dragPrev = null, dragPending = null, dragRaf = 0;
+function dragMove(e) {
+  if (!dragPrev) return;
+  dragPending = { x: e.screenX, y: e.screenY };
+  if (dragRaf) return;
+  /* rAF 合帧：每帧至多一次 IPC，拖拽跟手且不掉帧 */
+  dragRaf = requestAnimationFrame(() => {
+    dragRaf = 0;
+    if (!dragPrev || !dragPending) return;
+    window.quota.winDrag(dragPrev.x, dragPrev.y);
+    dragPrev = dragPending; dragPending = null;
+  });
+}
+function dragUp() {
+  if (!dragPrev) return;
+  if (dragPending) { window.quota.winDrag(dragPrev.x, dragPrev.y); dragPrev = dragPending; dragPending = null; }
+  dragPrev = null;
+  if (dragRaf) { cancelAnimationFrame(dragRaf); dragRaf = 0; }
+  window.removeEventListener('mousemove', dragMove);
+  window.removeEventListener('mouseup', dragUp);
+  window.quota.winDragEnd();
+}
+function bindWinDrag(el) {
+  el.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    if (e.target.closest('.seg, .state, .pager, button, input, select, textarea, a')) return;
+    dragPrev = { x: e.screenX, y: e.screenY };
+    window.quota.winDragStart();
+    window.addEventListener('mousemove', dragMove);
+    window.addEventListener('mouseup', dragUp);
+    e.preventDefault();
+  });
+}
+bindWinDrag(document.querySelector('.topbar'));
+bindWinDrag($('pill'));
 
 /* shot 模式：内容就绪后放行截图 */
 window.__shotDone = function () { return true; };

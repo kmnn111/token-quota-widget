@@ -46,7 +46,7 @@ body.dark {
   clip-path: inset(0 0 0 0 round 33px);
 }
 .frame.docked {
-  clip-path: inset(0 86px 776px 86px round 20px);
+  clip-path: inset(0 70px 776px 70px round 20px);
 }
 .frame.docked .view, .frame.docked .topbar, .frame.docked .bottombar { opacity: 0; pointer-events: none; transition: opacity .13s ease; }
 .frame.docked.expanded { clip-path: inset(0 0 0 0 round 33px); }
@@ -57,15 +57,15 @@ body.dark {
   flex: none; height: 50px; padding: 0 18px;
   display: flex; align-items: center; gap: 12px;
   border-bottom: 1px solid var(--line);
-  -webkit-app-region: drag;
+  cursor: move;
 }
 .topbar .logo { font-size: 15px; font-weight: 600; letter-spacing: .5px; }
 .topbar .logo em { font-style: normal; color: var(--ink3); }
-.seg { display: flex; gap: 2px; background: var(--glass-soft); border: 1px solid var(--line); border-radius: 12px; padding: 2px; -webkit-app-region: no-drag; }
+.seg { display: flex; gap: 2px; background: var(--glass-soft); border: 1px solid var(--line); border-radius: 12px; padding: 2px; cursor: default; }
 .seg button { border: 0; background: none; color: var(--ink2); font-size: 10px; padding: 4px 10px; border-radius: 10px; cursor: pointer; font-family: inherit; letter-spacing: .05em; }
 .seg button.on { background: rgba(255, 255, 255, .9); color: var(--ink); box-shadow: 0 1px 3px rgba(30, 50, 90, .12); }
 body.dark .seg button.on { background: rgba(255, 255, 255, .14); box-shadow: none; }
-.topbar .state { margin-left: auto; font-size: 10.5px; color: var(--ink2); display: flex; align-items: center; gap: 6px; -webkit-app-region: no-drag; }
+.topbar .state { margin-left: auto; font-size: 10.5px; color: var(--ink2); display: flex; align-items: center; gap: 6px; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tint); box-shadow: 0 0 0 3px rgba(59, 156, 142, .18); }
 .dot.warn { background: var(--warn); box-shadow: 0 0 0 3px rgba(217, 138, 31, .18); }
 .dot.err { background: var(--danger); box-shadow: 0 0 0 3px rgba(217, 106, 85, .18); }
@@ -139,6 +139,8 @@ body.dark .gh-item { background: rgba(255, 255, 255, .055); }
 .gh-main b { display: block; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gh-main i { display: block; font-style: normal; font-size: 9.5px; color: var(--ink3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gh-star { font-size: 10px; color: #d9a13c; flex: none; }
+.gh-tag { flex: none; font-size: 8.5px; line-height: 1; padding: 3px 6px; border-radius: 8px; white-space: nowrap; color: #b07c22; background: rgba(217, 161, 60, .12); border: 1px solid rgba(217, 161, 60, .28); }
+body.dark .gh-tag { color: #d9a13c; background: rgba(217, 161, 60, .1); }
 .gh-foot { font-size: 9px; color: var(--ink3); margin-top: 7px; line-height: 1.5; }
 
 /* ============ 底栏：视图切换 ============ */
@@ -150,16 +152,16 @@ body.dark .bottombar button.on { background: rgba(255, 255, 255, .13); box-shado
 
 /* ============ 吸顶胶囊：248×64 文字|logo|环形图（方案 B） ============ */
 .pill {
-  position: absolute; left: 86px; top: 0; width: 248px; height: 64px; border-radius: 20px;
+  position: absolute; left: 70px; top: 0; width: 280px; height: 64px; border-radius: 20px;
   display: flex; align-items: center; gap: 8px; padding: 0 12px;
   opacity: 0; pointer-events: none;
+  cursor: move;
   /* 玻璃 38% 透明 + 当前厂商品牌色渐变底（--brand 由渲染层按帧注入） */
   background: linear-gradient(100deg, color-mix(in srgb, var(--brand, #7b8aa5) 12%, transparent), rgba(255, 255, 255, .38) 62%);
   backdrop-filter: blur(26px) saturate(1.45);
   -webkit-backdrop-filter: blur(26px) saturate(1.45);
   border: 1px solid rgba(255, 255, 255, .5);
   box-shadow: 0 12px 30px rgba(40, 60, 90, .14);
-  -webkit-app-region: drag;
   transition: opacity .18s ease;
 }
 body.dark .pill {
@@ -189,7 +191,7 @@ body.dark .pring .bg { stroke: rgba(255, 255, 255, .14); }
   font-size: 9.5px; font-weight: 700; line-height: 1.35; padding: 1.5px 7px; border-radius: 8px;
   color: var(--brand, var(--ink2));
   background: color-mix(in srgb, var(--brand, #7b8aa5) 13%, transparent);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 88px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 104px;
 }
 .chip.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
 .pager { display: flex; gap: 3px; flex: none; }
@@ -215,5 +217,7 @@ body.dark .frm input, body.dark .frm select, body.dark .frm textarea { backgroun
 body.dark .frm button { background: rgba(255, 255, 255, .1); box-shadow: none; }
 .hint { font-size: 9.5px; color: var(--ink3); line-height: 1.6; margin-top: 6px; }
 .hint code { font-family: Consolas, monospace; color: var(--ink2); }
+.frm label.chk { display: flex; align-items: center; gap: 7px; cursor: pointer; font-size: 11px; margin-top: 4px; }
+.frm input[type="checkbox"] { width: auto; height: auto; padding: 0; border: none; background: none; accent-color: #5fc7be; cursor: pointer; }
 
 .sig { padding: 8px 18px 12px; font-size: 9px; color: var(--ink3); letter-spacing: .1em; }
