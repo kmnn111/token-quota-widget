@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>胶囊小窗 v2.1 方案预览</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 900px; font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; color: #5b4632;
+    background:
+      radial-gradient(420px 300px at 82% 6%, rgba(255, 178, 122, .55), transparent 70%),
+      radial-gradient(380px 320px at 8% 30%, rgba(255, 205, 160, .5), transparent 70%),
+      radial-gradient(460px 360px at 90% 62%, rgba(240, 150, 130, .42), transparent 70%),
+      radial-gradient(420px 340px at 12% 88%, rgba(255, 190, 140, .45), transparent 70%),
+      linear-gradient(160deg, #f9e6cc 0%, #f4cda9 45%, #eeb49b 78%, #e9a494 100%);
+    padding: 30px 34px 34px;
+  }
+  header h1 { font-size: 21px; font-weight: 700; letter-spacing: .5px; }
+  header p { font-size: 12px; margin-top: 6px; opacity: .82; line-height: 1.7; }
+  h2 { font-size: 13.5px; margin: 26px 0 6px; font-weight: 700; opacity: .85; }
+  .hint { font-size: 11px; opacity: .7; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: 248px 248px; gap: 22px 26px; justify-content: space-between; }
+  figure { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  figcaption { font-size: 11px; opacity: .78; letter-spacing: .2px; }
+  .comptable { display: flex; flex-direction: column; gap: 18px; }
+  .comprow { display: flex; gap: 26px; justify-content: space-between; }
+  .comphead { display: flex; gap: 26px; justify-content: space-between; margin-bottom: 4px; }
+  .comphead span { width: 224px; text-align: center; font-size: 11.5px; font-weight: 700; opacity: .85; }
+  .pill {
+    position: relative; width: 248px; height: 64px; border-radius: 20px; overflow: hidden;
+    display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    background: rgba(255, 255, 255, .38);
+    backdrop-filter: blur(26px) saturate(1.45); -webkit-backdrop-filter: blur(26px) saturate(1.45);
+    border: 1px solid rgba(255, 255, 255, .5);
+    box-shadow: 0 12px 30px rgba(40, 60, 90, .14);
+  }
+  .pill.old { background: rgba(252, 250, 246, .82); border: 1px solid rgba(46, 66, 100, .13); padding: 0 15px; gap: 10px; }
+  .wmA { position: absolute; left: -15px; top: 50%; transform: translateY(-50%); opacity: .13; }
+  .wslot { flex: none; }
+  .strip {
+    flex: none; width: 44px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pmid { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+  .ptime { font-size: 17px; font-weight: 650; color: #22344f; line-height: 1.05; letter-spacing: .3px; }
+  .ptime sup { font-size: .42em; font-weight: 600; opacity: .68; margin-left: 2px; }
+  .pdate { font-size: 10px; color: #5b6e90; line-height: 1.25; white-space: nowrap; }
+  .psubrow { display: flex; align-items: center; height: 15px; }
+  .pplain { font-size: 9.5px; color: #3d6fd6; }
+  .chip { font-size: 9.5px; font-weight: 700; padding: 1.5px 7px; border-radius: 8px; white-space: nowrap; }
+  .pring { flex: none; }
+  .notes { margin-top: 26px; font-size: 11.5px; line-height: 1.9; opacity: .85; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>胶囊小窗 · v2.1 方案预览</h1>
+    <p>v2 的问题：logo 水印压着环形图显脏。v2.1 把 logo 从环形图脚下挪开，三种摆法同屏对比（同一厂商同一帧），选好后全阵容按所选拍法铺开。<br>
+    logo 库已收录 16 家主流厂商（12 家官方图标 + 4 家文字标兜底）。</p>
+  </header>
+
+  <h2>三种摆法对比</h2>
+  <div class="hint">A：logo 大水印贴左缘裁切，压在时间文字后面（13% 透明），环形图完全干净 ｜ B：logo 入列成品牌小图标（全彩 42px），玻璃带品牌色渐变 ｜ E：左端品牌色条嵌 logo（白 logo），读数区更醒目</div>
+  <div class="comptable">
+    <div class="comphead"><span>A · 大水印贴左</span><span>B · logo 入列</span><span>E · 品牌色条</span></div>
+    <div class="comprow"><figure><div class="pill"><svg class="wmA" viewBox="0 0 24 24" height="66"><path d="M12 0C8.016 0 4.756.255 2.493 2.516.23 4.776 0 8.033 0 12.012c0 3.98.23 7.235 2.494 9.497C4.757 23.77 8.017 24 12 24c3.983 0 7.243-.23 9.506-2.491C23.77 19.247 24 15.99 24 12.012c0-3.984-.233-7.243-2.502-9.504C19.234.252 15.978 0 12 0zM4.906 7.405h5.624c1.47 0 3.007.068 3.764.827.746.746.827 2.233.83 3.676v4.54a.15.15 0 0 1-.152.147h-1.947a.15.15 0 0 1-.152-.148V11.83c-.002-.806-.048-1.634-.464-2.051-.358-.36-1.026-.441-1.72-.458H7.158a.15.15 0 0 0-.151.147v6.98a.15.15 0 0 1-.152.148H4.906a.15.15 0 0 1-.15-.148V7.554a.15.15 0 0 1 .15-.149zm12.131 0h1.949a.15.15 0 0 1 .15.15v8.892a.15.15 0 0 1-.15.148h-1.949a.15.15 0 0 1-.151-.148V7.554a.15.15 0 0 1 .151-.149zM8.92 10.948h2.046c.083 0 .15.066.15.147v5.352a.15.15 0 0 1-.15.148H8.92a.15.15 0 0 1-.152-.148v-5.352a.15.15 0 0 1 .152-.147Z" fill="#FF6900"/></svg><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#FF6900;background:rgba(255,105,0,0.130)">小米 MiMo</span></div>
+    </div><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="40.6" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">62</text>
+    </svg></div></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(255,105,0,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#FF6900;background:rgba(255,105,0,0.130)">小米 MiMo</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M12 0C8.016 0 4.756.255 2.493 2.516.23 4.776 0 8.033 0 12.012c0 3.98.23 7.235 2.494 9.497C4.757 23.77 8.017 24 12 24c3.983 0 7.243-.23 9.506-2.491C23.77 19.247 24 15.99 24 12.012c0-3.984-.233-7.243-2.502-9.504C19.234.252 15.978 0 12 0zM4.906 7.405h5.624c1.47 0 3.007.068 3.764.827.746.746.827 2.233.83 3.676v4.54a.15.15 0 0 1-.152.147h-1.947a.15.15 0 0 1-.152-.148V11.83c-.002-.806-.048-1.634-.464-2.051-.358-.36-1.026-.441-1.72-.458H7.158a.15.15 0 0 0-.151.147v6.98a.15.15 0 0 1-.152.148H4.906a.15.15 0 0 1-.15-.148V7.554a.15.15 0 0 1 .15-.149zm12.131 0h1.949a.15.15 0 0 1 .15.15v8.892a.15.15 0 0 1-.15.148h-1.949a.15.15 0 0 1-.151-.148V7.554a.15.15 0 0 1 .151-.149zM8.92 10.948h2.046c.083 0 .15.066.15.147v5.352a.15.15 0 0 1-.15.148H8.92a.15.15 0 0 1-.152-.148v-5.352a.15.15 0 0 1 .152-.147Z" fill="#FF6900"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="40.6" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">62</text>
+    </svg></div></figure><figure><div class="pill"><div class="strip" style="background:rgba(255,105,0,0.920)"><svg class="wslot" viewBox="0 0 24 24" height="24"><path d="M12 0C8.016 0 4.756.255 2.493 2.516.23 4.776 0 8.033 0 12.012c0 3.98.23 7.235 2.494 9.497C4.757 23.77 8.017 24 12 24c3.983 0 7.243-.23 9.506-2.491C23.77 19.247 24 15.99 24 12.012c0-3.984-.233-7.243-2.502-9.504C19.234.252 15.978 0 12 0zM4.906 7.405h5.624c1.47 0 3.007.068 3.764.827.746.746.827 2.233.83 3.676v4.54a.15.15 0 0 1-.152.147h-1.947a.15.15 0 0 1-.152-.148V11.83c-.002-.806-.048-1.634-.464-2.051-.358-.36-1.026-.441-1.72-.458H7.158a.15.15 0 0 0-.151.147v6.98a.15.15 0 0 1-.152.148H4.906a.15.15 0 0 1-.15-.148V7.554a.15.15 0 0 1 .15-.149zm12.131 0h1.949a.15.15 0 0 1 .15.15v8.892a.15.15 0 0 1-.15.148h-1.949a.15.15 0 0 1-.151-.148V7.554a.15.15 0 0 1 .151-.149zM8.92 10.948h2.046c.083 0 .15.066.15.147v5.352a.15.15 0 0 1-.15.148H8.92a.15.15 0 0 1-.152-.148v-5.352a.15.15 0 0 1 .152-.147Z" fill="#ffffff"/></svg></div><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#FF6900;background:rgba(255,105,0,0.130)">小米 MiMo</span></div>
+    </div><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="40.6" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">62</text>
+    </svg></div></figure></div><div class="comprow"><figure><div class="pill"><svg class="wmA" viewBox="0 0 24 24" height="66"><path d="M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45" fill="#5786FE"/></svg><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#5786FE;background:rgba(87,134,254,0.130)">深度求索 DeepSeek</span></div>
+    </div><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="12.8" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">88</text>
+    </svg></div></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(87,134,254,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#5786FE;background:rgba(87,134,254,0.130)">深度求索</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45" fill="#5786FE"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="12.8" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">88</text>
+    </svg></div></figure><figure><div class="pill"><div class="strip" style="background:rgba(87,134,254,0.920)"><svg class="wslot" viewBox="0 0 24 24" height="24"><path d="M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45" fill="#ffffff"/></svg></div><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#5786FE;background:rgba(87,134,254,0.130)">深度求索</span></div>
+    </div><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="12.8" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">88</text>
+    </svg></div></figure></div><div class="comprow"><figure><div class="pill"><svg class="wmA" viewBox="0 0 24 24" height="66"><rect x="1" y="1" width="22" height="22" rx="6.5" fill="#000000"/><text x="12" y="16.8" text-anchor="middle" font-size="11.5" font-weight="700" fill="#ffffff" font-family="Microsoft YaHei, sans-serif">G</text></svg><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#000000;background:rgba(0,0,0,0.130)">xAI Grok</span></div>
+    </div><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="51.3" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">52</text>
+    </svg></div></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(0,0,0,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#000000;background:rgba(0,0,0,0.130)">Grok</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><rect x="1" y="1" width="22" height="22" rx="6.5" fill="#000000"/><text x="12" y="16.8" text-anchor="middle" font-size="11.5" font-weight="700" fill="#ffffff" font-family="Microsoft YaHei, sans-serif">G</text></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="51.3" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">52</text>
+    </svg></div></figure><figure><div class="pill"><div class="strip" style="background:rgba(0,0,0,0.920)"><svg class="wslot" viewBox="0 0 24 24" height="24"><text x="12" y="17.5" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff" font-family="Microsoft YaHei, sans-serif">G</text></svg></div><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#000000;background:rgba(0,0,0,0.130)">Grok</span></div>
+    </div><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="51.3" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">52</text>
+    </svg></div></figure></div>
+  </div>
+
+  <h2>全阵容 · 方案 B（logo 入列）</h2>
+  <div class="grid">
+    <figure><div class="pill" style="background:linear-gradient(100deg, rgba(255,105,0,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#FF6900;background:rgba(255,105,0,0.130)">小米 MiMo</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M12 0C8.016 0 4.756.255 2.493 2.516.23 4.776 0 8.033 0 12.012c0 3.98.23 7.235 2.494 9.497C4.757 23.77 8.017 24 12 24c3.983 0 7.243-.23 9.506-2.491C23.77 19.247 24 15.99 24 12.012c0-3.984-.233-7.243-2.502-9.504C19.234.252 15.978 0 12 0zM4.906 7.405h5.624c1.47 0 3.007.068 3.764.827.746.746.827 2.233.83 3.676v4.54a.15.15 0 0 1-.152.147h-1.947a.15.15 0 0 1-.152-.148V11.83c-.002-.806-.048-1.634-.464-2.051-.358-.36-1.026-.441-1.72-.458H7.158a.15.15 0 0 0-.151.147v6.98a.15.15 0 0 1-.152.148H4.906a.15.15 0 0 1-.15-.148V7.554a.15.15 0 0 1 .15-.149zm12.131 0h1.949a.15.15 0 0 1 .15.15v8.892a.15.15 0 0 1-.15.148h-1.949a.15.15 0 0 1-.151-.148V7.554a.15.15 0 0 1 .151-.149zM8.92 10.948h2.046c.083 0 .15.066.15.147v5.352a.15.15 0 0 1-.15.148H8.92a.15.15 0 0 1-.152-.148v-5.352a.15.15 0 0 1 .152-.147Z" fill="#FF6900"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="40.6" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">62</text>
+    </svg></div><figcaption>小米 MiMo</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(116,170,156,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#74AA9C;background:rgba(116,170,156,0.130)">OpenAI Codex</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" fill="#74AA9C"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#d96a55" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="94.0" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">12</text>
+    </svg></div><figcaption>OpenAI Codex</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(217,119,87,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#D97757;background:rgba(217,119,87,0.130)">Claude</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z" fill="#D97757"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="23.5" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">78</text>
+    </svg></div><figcaption>Anthropic Claude</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(142,117,178,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#8E75B2;background:rgba(142,117,178,0.130)">Gemini 谷歌</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81" fill="#8E75B2"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#d98a1f" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="58.7" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">45</text>
+    </svg></div><figcaption>Gemini 谷歌</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(87,134,254,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#5786FE;background:rgba(87,134,254,0.130)">深度求索</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M23.748 4.651c-.254-.124-.364.113-.512.233-.051.04-.094.09-.137.137-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.155-.708-.311-.955-.65-.172-.24-.219-.509-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.094.172.187.129.323-.082.28-.18.553-.266.833-.055.179-.137.218-.328.14a5.5 5.5 0 0 1-1.737-1.179c-.857-.828-1.631-1.743-2.597-2.46a12 12 0 0 0-.689-.47c-.985-.957.13-1.743.387-1.836.27-.098.094-.433-.778-.428-.872.003-1.67.295-2.687.685a3 3 0 0 1-.465.136 9.6 9.6 0 0 0-2.883-.101c-1.885.21-3.39 1.1-4.497 2.622C.082 8.776-.231 10.854.152 13.02c.403 2.284 1.568 4.175 3.36 5.653 1.857 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.132-.284 4.994-1.86.47.234.962.328 1.78.398.629.058 1.235-.031 1.705-.129.735-.155.684-.836.418-.961-2.155-1.004-1.682-.595-2.112-.926 1.095-1.295 2.768-3.598 3.284-6.733.05-.346.115-.834.108-1.114-.004-.171.035-.238.23-.257a4.2 4.2 0 0 0 1.545-.475c1.397-.763 1.96-2.016 2.093-3.517.02-.23-.004-.467-.247-.588M11.58 18.168c-2.088-1.642-3.101-2.183-3.52-2.16-.39.024-.32.472-.234.763.09.288.207.487.371.74.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.168-1.361-.801-2.5-1.86-3.301-3.306-.775-1.393-1.225-2.888-1.299-4.482-.02-.385.094-.522.477-.592a4.7 4.7 0 0 1 1.53-.038c2.131.311 3.946 1.264 5.467 2.774.868.86 1.525 1.887 2.202 2.89.72 1.066 1.494 2.082 2.48 2.915.348.291.626.513.892.677-.802.09-2.14.109-3.055-.615zm1.001-6.44a.306.306 0 0 1 .415-.287.3.3 0 0 1 .113.074.3.3 0 0 1 .086.214c0 .17-.136.307-.308.307a.303.303 0 0 1-.306-.307m3.11 1.596c-.2.081-.4.151-.591.16a1.25 1.25 0 0 1-.798-.254c-.274-.23-.47-.358-.551-.758a1.7 1.7 0 0 1 .015-.588c.07-.327-.007-.537-.238-.727-.188-.156-.426-.199-.689-.199a.6.6 0 0 1-.254-.078.253.253 0 0 1-.114-.358 1 1 0 0 1 .192-.21c.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.392.451.462.576.685.915.176.264.336.536.446.848.066.194-.02.353-.25.45" fill="#5786FE"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="12.8" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">88</text>
+    </svg></div><figcaption>深度求索 DeepSeek</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(97,92,237,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#615CED;background:rgba(97,92,237,0.130)">通义千问</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M23.919 14.545 20.817 9.17l1.47-2.544a.56.56 0 0 0 0-.566l-1.633-2.83a.57.57 0 0 0-.49-.283h-6.207L12.487.402a.57.57 0 0 0-.49-.284H8.732a.56.56 0 0 0-.49.284L5.139 5.775h-2.94a.56.56 0 0 0-.49.284L.077 8.887a.56.56 0 0 0 0 .567L3.18 14.83l-1.47 2.545a.56.56 0 0 0 0 .566l1.634 2.83a.57.57 0 0 0 .49.283h6.205l1.47 2.545a.57.57 0 0 0 .49.284h3.266a.57.57 0 0 0 .49-.284l3.104-5.375h2.94a.57.57 0 0 0 .49-.283l1.634-2.828a.55.55 0 0 0-.004-.568M8.733.686l1.634 2.828-1.634 2.828H21.8L20.164 9.17H7.425L5.63 6.06Zm1.306 19.801-6.205-.002 1.634-2.83h3.265L2.201 6.344h3.267q3.182 5.517 6.367 11.032zm10.124-5.66L18.53 12l-6.532 11.315-1.634-2.83c2.129-3.673 4.25-7.351 6.373-11.028h3.592l3.102 5.374z" fill="#615CED"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#d98a1f" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="70.5" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">34</text>
+    </svg></div><figcaption>通义千问 Qwen</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(56,89,255,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#3859FF;background:rgba(56,89,255,0.130)">智谱 GLM</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M12.606 1.806l-1.677 2.388c-0.258 0.374-0.697 0.606-1.161 0.606h-9.162V1.794C0.594 1.806 12.606 1.806 12.606 1.806zM24 1.806L9.6 22.206 0 22.206 14.4 1.806zM11.394 22.206l1.69-2.4c0.258-0.374 0.697-0.606 1.161-0.606h9.149v3.006H11.394z" fill="#3859FF"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="31.0" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">71</text>
+    </svg></div><figcaption>智谱 GLM · Z.ai</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(22,25,30,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#16191E;background:rgba(22,25,30,0.130)">月之暗面 Kimi</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M21.765.351C22.998.351 24 1.353 24 2.586S22.998 4.82 21.765 4.82h-1.974c-.15 0-.26-.12-.26-.26V2.586A2.237 2.237 0 0 1 21.765.35M9.41 13.388l8.447-8.377c.16-.16.07-.471-.14-.471h-4.55s-.1.02-.14.06l-9.099 9.029c-.14.14-.35.02-.35-.21V4.81c0-.15-.1-.27-.221-.27H.22c-.12 0-.22.12-.22.27v18.57c0 .15.1.27.22.27h3.137c.12 0 .22-.12.22-.27v-3.79c0-.08.03-.16.08-.21l2.826-2.796c.07-.07.16-.08.241-.03l7.546 5.551a8.9 8.9 0 0 0 4.018 1.493c.12.01.23-.11.23-.27V19.76c0-.14-.08-.25-.19-.26a5.8 5.8 0 0 1-2.355-.942l-6.533-4.73c-.14-.09-.15-.32-.03-.441" fill="#16191E"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="47.0" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">56</text>
+    </svg></div><figcaption>月之暗面 Kimi</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(50,90,180,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#325AB4;background:rgba(50,90,180,0.130)">字节豆包</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M19.8772 1.4685L24 2.5326v18.9426l-4.1228 1.0563V1.4685zm-13.3481 9.428l4.115 1.0641v8.9786l-4.115 1.0642v-11.107zM0 2.572l4.115 1.0642v16.7354L0 21.428V2.572zm17.4553 5.6205v11.107l-4.1228-1.0642V9.2568l4.1228-1.0642z" fill="#325AB4"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#d98a1f" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="82.2" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">23</text>
+    </svg></div><figcaption>字节豆包 Doubao</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(0,82,217,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#0052D9;background:rgba(0,82,217,0.130)">腾讯混元</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M12 0a1 1 0 0 1 0 24 1 1 0 0 1 0-24m1.65 1.12c.533.097 1.023.233 1.41.404 6.086 2.686 7.398 9.217 1.603 14.341a3.782 3.782 0 0 1-6.126-1.75 3.66 3.66 0 0 1-.095-1.622c-1.934.6-3.295 2.305-3.524 4.45-.204 1.912.324 4.044 2.056 5.634A11 11 0 1 0 13.65 1.12M2.748 6.21A11 11 0 0 0 8.9 22.55c-5.377-4.022-6.06-8.4-2.43-13.87a2.234 2.234 0 1 0-3.722-2.47m10.157-5.172c4.408 1.33 3.61 5.41 2.447 6.924-.86 1.117-2.922 1.46-3.708 2.238a4.18 4.18 0 0 0-1.212 2.292A5.3 5.3 0 0 1 12 12.258a5.672 5.672 0 0 0 1.404-11.169 11 11 0 0 0-.5-.052" fill="#0052D9"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="20.3" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">81</text>
+    </svg></div><figcaption>腾讯混元 Hunyuan</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(41,50,225,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#2932E1;background:rgba(41,50,225,0.130)">文心一言</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M9.154 0C7.71 0 6.54 1.658 6.54 3.707c0 2.051 1.171 3.71 2.615 3.71 1.446 0 2.614-1.659 2.614-3.71C11.768 1.658 10.6 0 9.154 0zm7.025.594C14.86.58 13.347 2.589 13.2 3.927c-.187 1.745.25 3.487 2.179 3.735 1.933.25 3.175-1.806 3.422-3.364.252-1.555-.995-3.364-2.362-3.674a1.218 1.218 0 0 0-.261-.03zM3.582 5.535a2.811 2.811 0 0 0-.156.008c-2.118.19-2.428 3.24-2.428 3.24-.287 1.41.686 4.425 3.297 3.864 2.617-.561 2.262-3.68 2.183-4.362-.125-1.018-1.292-2.773-2.896-2.75zm16.534 1.753c-2.308 0-2.617 2.119-2.617 3.616 0 1.43.121 3.425 2.988 3.362 2.867-.063 2.553-3.238 2.553-3.988 0-.745-.62-2.99-2.924-2.99zm-8.264 2.478c-1.424.014-2.708.925-3.323 1.947-1.118 1.868-2.863 3.05-3.112 3.363-.25.309-3.61 2.116-2.864 5.42.746 3.301 3.365 3.237 3.365 3.237s1.93.19 4.171-.31c2.24-.495 4.17.123 4.17.123s5.233 1.748 6.665-1.616c1.43-3.364-.808-5.109-.808-5.109s-2.99-2.306-4.736-4.798c-1.072-1.665-2.348-2.268-3.528-2.257zm-2.234 3.84l1.542.024v8.197H7.758c-1.47-.291-2.055-1.292-2.13-1.462-.072-.173-.488-.976-.268-2.343.635-2.049 2.447-2.196 2.447-2.196h1.81zm3.964 2.39v3.881c.096.413.612.488.612.488h1.614v-4.343h1.689v5.782h-3.915c-1.517-.39-1.59-1.465-1.59-1.465v-4.317zm-5.458 1.147c-.66.197-.978.708-1.05.928-.076.22-.247.78-.1 1.269.294 1.095 1.248 1.144 1.248 1.144h1.37v-3.34z" fill="#2932E1"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#d98a1f" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="65.1" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">39</text>
+    </svg></div><figcaption>文心一言 ERNIE</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(29,43,54,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#1D2B36;background:rgba(29,43,54,0.130)">MiniMax</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><path d="M11.43 3.92a.86.86 0 1 0-1.718 0v14.236a1.999 1.999 0 0 1-3.997 0V9.022a.86.86 0 1 0-1.718 0v3.87a1.999 1.999 0 0 1-3.997 0V11.49a.57.57 0 0 1 1.139 0v1.404a.86.86 0 0 0 1.719 0V9.022a1.999 1.999 0 0 1 3.997 0v9.134a.86.86 0 0 0 1.719 0V3.92a1.998 1.998 0 1 1 3.996 0v11.788a.57.57 0 1 1-1.139 0zm10.572 3.105a2 2 0 0 0-1.999 1.997v7.63a.86.86 0 0 1-1.718 0V3.923a1.999 1.999 0 0 0-3.997 0v16.16a.86.86 0 0 1-1.719 0V18.08a.57.57 0 1 0-1.138 0v2a1.998 1.998 0 0 0 3.996 0V3.92a.86.86 0 0 1 1.719 0v12.73a1.999 1.999 0 0 0 3.996 0V9.023a.86.86 0 1 1 1.72 0v6.686a.57.57 0 0 0 1.138 0V9.022a2 2 0 0 0-1.998-1.997" fill="#1D2B36"/></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="38.4" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">64</text>
+    </svg></div><figcaption>MiniMax</figcaption></figure>
+  </div>
+
+  <h2>没有官方图标的厂商 → 品牌色文字标自动兜底</h2>
+  <div class="grid">
+    <figure><div class="pill" style="background:linear-gradient(100deg, rgba(0,0,0,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#000000;background:rgba(0,0,0,0.130)">Grok</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><rect x="1" y="1" width="22" height="22" rx="6.5" fill="#000000"/><text x="12" y="16.8" text-anchor="middle" font-size="11.5" font-weight="700" fill="#ffffff" font-family="Microsoft YaHei, sans-serif">G</text></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="51.3" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">52</text>
+    </svg></div><figcaption>xAI Grok · 文字标兜底</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(36,104,242,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#2468F2;background:rgba(36,104,242,0.130)">讯飞星火</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><rect x="1" y="1" width="22" height="22" rx="6.5" fill="#2468F2"/><text x="12" y="16.8" text-anchor="middle" font-size="11.5" font-weight="700" fill="#ffffff" font-family="Microsoft YaHei, sans-serif">讯</text></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="35.2" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">67</text>
+    </svg></div><figcaption>科大讯飞星火 Spark · 文字标兜底</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(91,78,255,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#5B4EFF;background:rgba(91,78,255,0.130)">阶跃星辰</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><rect x="1" y="1" width="22" height="22" rx="6.5" fill="#5B4EFF"/><text x="12" y="16.8" text-anchor="middle" font-size="11.5" font-weight="700" fill="#ffffff" font-family="Microsoft YaHei, sans-serif">阶</text></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#d98a1f" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="73.7" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">31</text>
+    </svg></div><figcaption>阶跃星辰 Step · 文字标兜底</figcaption></figure><figure><div class="pill" style="background:linear-gradient(100deg, rgba(46,108,230,0.120), rgba(255,255,255,.38) 62%);"><div class="pmid">
+      <div class="ptime">12:47<sup>03</sup></div>
+      <div class="pdate">11月5日 周四 · 5h 后重置</div>
+      <div class="psubrow"><span class="chip" style="color:#2E6CE6;background:rgba(46,108,230,0.130)">百川</span></div>
+    </div><svg class="wslot" viewBox="0 0 24 24" height="42"><rect x="1" y="1" width="22" height="22" rx="6.5" fill="#2E6CE6"/><text x="12" y="16.8" text-anchor="middle" font-size="11.5" font-weight="700" fill="#ffffff" font-family="Microsoft YaHei, sans-serif">百</text></svg><svg class="pring" viewBox="0 0 44 44" width="44" height="44">
+      <circle cx="22" cy="22" r="21" fill="rgba(255,255,255,.32)"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="5"/>
+      <circle cx="22" cy="22" r="17" fill="none" stroke="#3b9c8e" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="106.8" stroke-dashoffset="17.1" transform="rotate(-90 22 22)"/>
+      <text x="22" y="26.3" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22344f">84</text>
+    </svg></div><figcaption>百川 Baichuan · 文字标兜底</figcaption></figure>
+  </div>
+
+  <div class="notes">
+    <b>实现说明：</b>三种摆法都不再与环形图重叠；环形图下加了一层淡白托底，复杂壁纸上也能读。
+    厂名徽标随品牌色着色（B/E 里为保证宽度用短名，完整名在大窗显示）；玻璃透明度维持 v2 的 38%。
+  </div>
+</body>
+</html>

@@ -12,7 +12,7 @@
 
 ## 它是什么
 
-一个 **本地优先** 的 Windows 桌面小部件：把各家 AI 编码工具的 Token 额度、用量与成本聚进一块无边框透明玻璃里。白天暖玻璃、夜里可切夜间玻璃；大窗看全貌，拖到屏幕顶端自动收成 **248×64 的吸顶小窗**——左看时间，右看剩余额度，还带一枚迷你环形图。
+一个 **本地优先** 的 Windows 桌面小部件：把各家 AI 编码工具的 Token 额度、用量与成本聚进一块无边框透明玻璃里。白天暖玻璃、夜里可切夜间玻璃；大窗看全貌，拖到屏幕顶端自动收成 **248×64 的吸顶小窗**——时间日期、厂名徽标、品牌 logo 与迷你环形图一屏排开，轮转到哪家就亮哪家。
 
 开箱即用：不配置任何账号时以演示数据展示；配上 MiMo 后立刻换成真实额度。
 
@@ -20,7 +20,7 @@
     <table>
         <tr>
             <td width="435" align="center"><img src=".github/assets/showcase/main.png" width="380" alt="主窗"><br><sub><b>主窗 420×840</b> — 总量 / MiMo 置顶卡 / 多厂商额度 / 会话 / 活跃度热力图 / AI 热榜</sub></td>
-            <td width="435" align="center"><img src=".github/assets/showcase/dock.png" width="360" alt="吸顶小窗"><br><sub><b>吸顶小窗 248×64</b> — 左侧时间 / 日期 / 蓝色副标，右侧环形图直读剩余，多厂商每 5 秒轮转</sub></td>
+            <td width="435" align="center"><img src=".github/assets/showcase/dock.png" width="360" alt="吸顶小窗"><br><sub><b>吸顶小窗 248×64</b> — 时间 / 日期 / 厂名徽标、厂商 logo 入列、环形图直读剩余，多厂商每 5 秒轮转</sub></td>
         </tr>
         <tr>
             <td colspan="2" align="center"><img src=".github/assets/showcase/limits.png" width="380" alt="额度详情"><br><sub><b>额度详情</b> — 每家厂商的全部额度窗、重置倒计时、按量余额</sub></td>
@@ -44,6 +44,7 @@
 - **大窗 420×840 ↔ 吸顶小窗 248×64**：拖到屏幕顶边自动收起（与 [云上晴雨天气台](https://github.com/kmnn111/sky-weather-widget)、云上会议同规格），悬停展开，240ms clip-path 形变，窗口尺寸全程不变只做裁剪
 - **Win+D 打不走**：置顶开 = screen-saver 级 topmost；置顶关 = 钉在壁纸层 WorkerW 正上方（`npm run selftest` 可实测）
 - **小窗轮转**：配置 ≥2 家额度时每 5 秒横向滑入下一家（置顶厂商固定第一帧，其余按紧迫度排序）；只有 1 家完全静止
+- **厂商 logo 入列**：小窗排下 文字 | 品牌 logo | 环形图 三段；内置 20 家厂商官方图标（小米 MiMo、OpenAI、Anthropic、Gemini、DeepSeek、通义、智谱、Kimi、豆包、混元、文心、MiniMax 等），无官方图标的自动品牌色文字标兜底，玻璃随厂商品牌色渐变
 - **迷你环形图**：小窗右侧 44px 环形图直读剩余比例（弧长 + 中心数字），不重复显示大数字；轮转时弧长与颜色平滑过渡
 - **AI 热榜**：大窗底部本日 / 本周最热 AI GitHub 项目，点击默认浏览器打开仓库页（主进程域名白名单，只放行 github.com）
 

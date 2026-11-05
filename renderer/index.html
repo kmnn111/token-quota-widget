@@ -134,14 +134,16 @@
       <button class="mini" id="btnDock" title="收起为吸顶小窗">收起</button>
     </div>
 
-    <!-- ================= 吸顶胶囊：248×64 三段式 ================= -->
+    <!-- ================= 吸顶胶囊：248×64 文字|logo|环形图（方案 B） ================= -->
     <div class="pill" id="pill">
       <div class="pmid">
         <div class="ptime" id="pTime">--:--<sup>--</sup></div>
-        <div class="pdate" id="pDate">加载中</div>
-        <div class="psubrow"><div class="psub" id="pSub">正在读取额度…</div><div class="pager" id="pPager"></div></div>
+        <div class="pdate"><span id="pDate">加载中</span><span id="pCount"></span></div>
+        <div class="psubrow"><span class="chip" id="pChip">正在读取额度…</span><div class="pager" id="pPager"></div></div>
       </div>
+      <div class="plogo" id="pLogo"></div>
       <svg class="pring" id="pRing" viewBox="0 0 44 44" width="44" height="44">
+        <circle class="disc" cx="22" cy="22" r="21"/>
         <circle class="bg" cx="22" cy="22" r="17" fill="none" stroke-width="5"/>
         <circle class="fg" id="pRingFg" cx="22" cy="22" r="17" fill="none" stroke-width="5"
           stroke-linecap="round" stroke-dasharray="106.8" stroke-dashoffset="106.8"
@@ -151,6 +153,7 @@
     </div>
     </div>
   </div>
+  <script src="logos.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

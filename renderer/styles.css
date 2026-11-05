@@ -148,36 +148,50 @@ body.dark .gh-item { background: rgba(255, 255, 255, .055); }
 body.dark .bottombar button.on { background: rgba(255, 255, 255, .13); box-shadow: none; }
 .bottombar .mini { flex: none; width: 58px; font-size: 11px; }
 
-/* ============ 吸顶胶囊：348×64 三段式（天气台骨架） ============ */
+/* ============ 吸顶胶囊：248×64 文字|logo|环形图（方案 B） ============ */
 .pill {
   position: absolute; left: 86px; top: 0; width: 248px; height: 64px; border-radius: 20px;
-  display: flex; align-items: center; gap: 10px; padding: 0 15px;
+  display: flex; align-items: center; gap: 8px; padding: 0 12px;
   opacity: 0; pointer-events: none;
-  background: var(--glass);
-  backdrop-filter: blur(22px) saturate(1.2);
-  -webkit-backdrop-filter: blur(22px) saturate(1.2);
-  border: 1px solid var(--line);
-  box-shadow: 0 12px 34px rgba(40, 60, 90, .18);
+  /* 玻璃 38% 透明 + 当前厂商品牌色渐变底（--brand 由渲染层按帧注入） */
+  background: linear-gradient(100deg, color-mix(in srgb, var(--brand, #7b8aa5) 12%, transparent), rgba(255, 255, 255, .38) 62%);
+  backdrop-filter: blur(26px) saturate(1.45);
+  -webkit-backdrop-filter: blur(26px) saturate(1.45);
+  border: 1px solid rgba(255, 255, 255, .5);
+  box-shadow: 0 12px 30px rgba(40, 60, 90, .14);
   -webkit-app-region: drag;
   transition: opacity .18s ease;
 }
-body.dark .pill { box-shadow: 0 12px 34px rgba(0, 0, 0, .35); }
+body.dark .pill {
+  background: linear-gradient(100deg, color-mix(in srgb, var(--brand, #7b8aa5) 22%, transparent), rgba(12, 20, 38, .45) 62%);
+  border-color: rgba(255, 255, 255, .14);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .35);
+}
 .frame.docked .pill { opacity: 1; pointer-events: auto; transition: opacity .18s ease .08s; }
 .frame.docked.expanded .pill { opacity: 0; pointer-events: none; transition: opacity .1s; }
+.plogo { flex: none; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; }
+.plogo svg { height: 42px; width: auto; display: block; }
 .pring { flex: none; width: 44px; height: 44px; }
-.pring .bg { stroke: rgba(46, 66, 100, .13); }
+.pring .disc { fill: rgba(255, 255, 255, .32); }
+body.dark .pring .disc { fill: rgba(255, 255, 255, .1); }
+.pring .bg { stroke: rgba(255, 255, 255, .55); }
 body.dark .pring .bg { stroke: rgba(255, 255, 255, .14); }
 .pring .fg { transition: stroke-dashoffset .5s ease, stroke .3s ease; }
 .pring .pct { font-size: 11px; fill: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .pmid { flex: 1; min-width: 0; }
 .ptime { font-size: 17px; font-weight: 500; line-height: 1.05; font-variant-numeric: tabular-nums; }
 .ptime sup { font-size: 11px; color: var(--ink2); vertical-align: .42em; margin-left: 2px; }
-.pdate { font-size: 10px; color: var(--ink); line-height: 1.15; margin-top: 1px; }
-.psubrow { display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+.pdate { font-size: 10px; color: var(--ink); line-height: 1.15; margin-top: 1px; white-space: nowrap; overflow: hidden; }
+.pdate #pCount { color: var(--ink2); }
+.psubrow { display: flex; align-items: center; gap: 5px; margin-top: 1px; min-width: 0; }
 .psubrow .pager { margin-left: auto; }
-.psub { font-size: 9.5px; color: #3d6fd6; line-height: 1.15; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-body.dark .psub { color: #8ab6f5; }
-.psub.warn { color: var(--warn); }
+.chip {
+  font-size: 9.5px; font-weight: 700; line-height: 1.35; padding: 1.5px 7px; border-radius: 8px;
+  color: var(--brand, var(--ink2));
+  background: color-mix(in srgb, var(--brand, #7b8aa5) 13%, transparent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 88px;
+}
+.chip.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
 .pager { display: flex; gap: 3px; flex: none; }
 .pager i { width: 4px; height: 4px; border-radius: 50%; background: rgba(46, 66, 100, .3); transition: width .2s, background .2s; cursor: pointer; }
 body.dark .pager i { background: rgba(255, 255, 255, .28); }

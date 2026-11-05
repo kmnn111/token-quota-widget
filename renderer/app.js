@@ -187,9 +187,7 @@ function buildRoster() {
       /* 该家最紧急的额度窗（剩余最低） */
       const w = p.windows.slice().sort((a, b) => (a.leftPct ?? 100) - (b.leftPct ?? 100))[0];
       return {
-        name: p.name, color: p.color, left: w.leftPct,
-        tip: `${p.name.replace(/ Token Plan$/, '')} · ${shortCountdown(w.resetAt)}`,
-        sub: w.label + '剩余',
+        name: p.name, color: p.color, left: w.leftPct, resetAt: w.resetAt,
         warn: w.leftPct != null && w.leftPct < 20,
         pinned: p === pinned
       };
@@ -220,22 +218,34 @@ function setRing(left, color) {
   $('pRingPct').textContent = left == null ? '--' : left;
 }
 function paintPill(i, animate) {
+  const pill = $('pill');
   if (!roster.length) {
-    $('pSub').textContent = '尚未配置额度源 · 演示模式';
+    const lg0 = window.logoFor('额度窗', '#7b8aa5');
+    pill.style.setProperty('--brand', lg0.brand);
+    $('pChip').textContent = '尚未配置额度源 · 演示模式';
+    $('pChip').classList.remove('warn');
+    $('pCount').textContent = '';
+    $('pLogo').innerHTML = lg0.svg;
     setRing(null, 'var(--ink3)');
     return;
   }
   curIdx = i;
   const d = roster[i];
-  $('pSub').textContent = d.tip;
-  $('pSub').classList.toggle('warn', !!d.warn);
-  setRing(d.left, d.warn ? 'var(--warn)' : d.color);
+  const lg = window.logoFor(d.name, d.color);
+  pill.style.setProperty('--brand', lg.brand);
+  $('pChip').textContent = lg.display;
+  $('pChip').classList.toggle('warn', !!d.warn);
+  $('pCount').textContent = d.resetAt ? ' · ' + shortCountdown(d.resetAt) : '';
+  $('pLogo').innerHTML = lg.svg;
+  setRing(d.left, d.warn ? 'var(--warn)' : lg.brand);
   $('pPager').querySelectorAll('i').forEach((dot, k) => {
     dot.classList.toggle('on', k === i);
-    dot.style.background = k === i ? d.color : '';
+    dot.style.background = k === i ? lg.brand : '';
     dot.title = roster[k].name;
   });
-  if (animate) [$('pSub'), $('pRing')].forEach(el => { el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap'); });
+  if (animate) [pill.querySelector('.pmid'), $('pLogo'), $('pRing')].forEach(el => {
+    el.classList.remove('swap'); void el.offsetWidth; el.classList.add('swap');
+  });
 }
 function restartRotate() {
   if (rotTimer) { clearInterval(rotTimer); rotTimer = null; }
