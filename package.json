@@ -1,0 +1,76 @@
+{
+  "name": "token-quota-widget",
+  "productName": "额度窗",
+  "version": "0.1.0",
+  "description": "额度窗 — Windows 桌面 AI Token 额度仪表盘：无边框透明玻璃、大窗/吸顶小窗、MiMo Token Plan 与多厂商额度聚合、全中文界面",
+  "main": "main.js",
+  "author": "kmnn111",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kmnn111/token-quota-widget.git"
+  },
+  "keywords": [
+    "electron",
+    "windows",
+    "desktop-widget",
+    "token-usage",
+    "quota",
+    "mimo",
+    "token-plan",
+    "claude-code",
+    "codex",
+    "glassmorphism"
+  ],
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "shot": "electron . --shot",
+    "dist": "electron-builder --win nsis",
+    "pack": "electron-builder --win dir"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.kmnn111.tokenquota",
+    "productName": "额度窗",
+    "copyright": "Copyright © 2026 kmnn111",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "ext-guard.js",
+      "lib/**/*",
+      "providers/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "额度窗",
+      "artifactName": "额度窗-Setup-${version}.exe"
+    }
+  },
+  "dependencies": {
+    "koffi": "^3.3.6"
+  }
+}

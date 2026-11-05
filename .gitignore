@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/*.ico
+*.log
+.DS_Store
+Thumbs.db
+
+# 本地运行态：登录态、设置、缓存绝不入库
+.userdata/
+runtime/
+settings.local.json
+*.cookie
+.env
