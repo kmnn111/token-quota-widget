@@ -177,6 +177,98 @@ function renderHeat() {
   $('heatMeta').textContent = '近 30 天 · ' + active + ' 天活跃';
 }
 
+/* ---------------- 用量月历（当月每日强度 + 悬停详情） ---------------- */
+let calOffset = 0;   // 0 = 当月，-1 = 上月 …
+function parseCostYuan(s) {
+  const v = parseFloat(String(s || '').replace(/[,¥\s]/g, ''));
+  return Number.isFinite(v) ? v : 0;
+}
+function renderCalendar() {
+  const u = snap && snap.snapshot && snap.snapshot.usage;
+  const perDay = (u && u.perDay) || {};
+  const infoAll = (u && u.perDayInfo) || {};
+  const now = new Date();
+  const view = new Date(now.getFullYear(), now.getMonth() + calOffset, 1);
+  const y = view.getFullYear(), mo = view.getMonth();
+  $('calTitle').textContent = y + ' 年 ' + (mo + 1) + ' 月';
+  $('calPrev').disabled = calOffset <= -12;
+  $('calNext').disabled = calOffset >= 0;
+
+  const dim = new Date(y, mo + 1, 0).getDate();
+  const todayYmd = localYmd(now);
+  const pad = x => String(x).padStart(2, '0');
+  let monthSum = 0; const vals = [];
+  for (let d = 1; d <= dim; d++) {
+    const v = perDay[y + '-' + pad(mo + 1) + '-' + pad(d)] || 0;
+    vals.push(v); monthSum += v;
+  }
+  const max = Math.max(1, ...vals);
+  /* 逐日成本口径与英雄区一致：本月成本 ÷ 本月 tokens 折算到单日 */
+  const costRate = u && u.month > 0 ? parseCostYuan(u.costMonth) / u.month : 0;
+
+  const firstWd = new Date(y, mo, 1).getDay();
+  const cells = [];
+  for (let i = 0; i < firstWd; i++) cells.push(0);
+  for (let d = 1; d <= dim; d++) cells.push(d);
+
+  $('calGrid').innerHTML = cells.map(d => {
+    if (!d) return '<div class="d"></div>';
+    const ymd = y + '-' + pad(mo + 1) + '-' + pad(d);
+    const v = perDay[ymd] || 0;
+    const future = ymd > todayYmd;               // 零填充 YMD 字符串可直接比大小
+    const cls = ['d'];
+    if (future) cls.push('future');
+    else if (v > 0) cls.push('has');
+    else cls.push('zero');
+    if (ymd === todayYmd) cls.push('today');
+    const fill = !future && v > 0 ? ` style="background:rgba(95,199,190,${(0.15 + 0.85 * (v / max)).toFixed(2)})"` : '';
+    return `<div class="${cls.join(' ')}" data-ymd="${ymd}"${fill}>${d}</div>`;
+  }).join('');
+
+  /* 悬停浮层：当日 tokens / 估算成本 / 会话工具数 / 较前日 / 占当月 */
+  const tip = $('calTip'), card = $('calCard');
+  const hideTip = () => { tip.hidden = true; };
+  function showTip(cell) {
+    const ymd = cell.dataset.ymd;
+    if (!ymd || cell.classList.contains('future')) return;
+    const v = perDay[ymd] || 0;
+    const dt = new Date(ymd + 'T00:00:00');
+    const wd = ['日', '一', '二', '三', '四', '五', '六'][dt.getDay()];
+    const rows = [];
+    if (v > 0) {
+      rows.push(`<div class="tn">${fmtTokensHtml(v)}<small>tokens</small></div>`);
+      if (costRate > 0) rows.push(`<div class="tr">估算成本 ¥${(v * costRate).toFixed(2)}</div>`);
+      const info = infoAll[ymd];
+      if (info) rows.push(`<div class="tr">${info.sessions || 0} 个会话 · ${info.tools || 0} 个工具</div>`);
+      const prev = perDay[localYmd(new Date(dt.getTime() - 864e5))] || 0;
+      if (prev > 0) {
+        const pct = (v - prev) / prev * 100;
+        rows.push(`<div class="td${pct < 0 ? ' down' : ''}">较前日 ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</div>`);
+      }
+      if (monthSum > 0) rows.push(`<div class="tr">占当月 ${(v / monthSum * 100).toFixed(1)}%</div>`);
+    } else {
+      rows.push('<div class="tr">当日无用量记录</div>');
+    }
+    tip.innerHTML = `<div class="tt">${mo + 1} 月 ${Number(ymd.slice(8))} 日 · 周${wd}${ymd === todayYmd ? ' · 今天' : ''}</div>` + rows.join('');
+    tip.hidden = false;
+    /* 定位：水平对准格子并钳在卡内；下方放不下翻到上方 */
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    let left = cell.offsetLeft + cell.offsetWidth / 2 - tw / 2;
+    left = Math.max(4, Math.min(left, card.clientWidth - tw - 4));
+    let top = cell.offsetTop + cell.offsetHeight + 8;
+    if (top + th > card.clientHeight - 4) top = Math.max(4, cell.offsetTop - th - 8);
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+  $('calGrid').querySelectorAll('.d[data-ymd]').forEach(cell => {
+    if (cell.classList.contains('future')) return;
+    cell.addEventListener('mouseenter', () => showTip(cell));
+    cell.addEventListener('mouseleave', hideTip);
+  });
+}
+$('calPrev').addEventListener('click', () => { calOffset = Math.max(-12, calOffset - 1); renderCalendar(); });
+$('calNext').addEventListener('click', () => { calOffset = Math.min(0, calOffset + 1); renderCalendar(); });
+
 /* ---------------- AI 热榜 ---------------- */
 function renderTrending() {
   const t = snap && snap.trending;
@@ -311,6 +403,7 @@ function renderAll() {
   renderProviders(provs);
   renderTools();
   renderHeat();
+  renderCalendar();
   renderTrending();
   if (document.getElementById('vLimits').classList.contains('on')) renderLimits();
   buildRoster();
@@ -495,6 +588,100 @@ $('btnSaveAppearance').addEventListener('click', () => {
     alwaysOnTop: settings.alwaysOnTop
   }).then(() => restartRotate());
 });
+
+/* ---------------- 软件更新（OTA，照搬天气台语义） ---------------- */
+let manualCheck = false;
+let lastUpdateState = null;
+function updStatus(t) { const el = $('updateStatus'); if (el) el.textContent = t; }
+function hideBanner() { const b = $('updateBanner'); if (b) b.classList.remove('show'); }
+/* 「稍后」按 版本+状态 记忆：同一版本的同一提醒只弹一次（跨启动不复发） */
+function dismissedKey(type, ver) { return 'updDismiss_' + type + '_' + ver; }
+function dismissBanner() {
+  const s = lastUpdateState || {};
+  if ((s.type === 'available' || s.type === 'downloaded') && s.version) {
+    try { localStorage.setItem(dismissedKey(s.type, s.version), '1'); } catch (e) { }
+  }
+  hideBanner();
+}
+function showBanner(html, primaryLabel, showPrimary) {
+  const b = $('updateBanner'); if (!b) return;
+  $('ubText').innerHTML = html;
+  const p = $('ubPrimary');
+  p.hidden = !showPrimary;
+  if (showPrimary) { p.textContent = primaryLabel; p.disabled = false; }
+  b.classList.add('show');
+}
+function setDoUpdate(label) {
+  const b = $('btnDoUpdate'); if (!b) return;
+  if (label) { b.hidden = false; b.textContent = label; b.disabled = false; }
+  else b.hidden = true;
+}
+function onUpdateState(s) {
+  if (!s || !s.type) return;
+  lastUpdateState = s;
+  const cur = s.current ? 'v' + esc(s.current) : '';
+  switch (s.type) {
+    case 'available':
+      manualCheck = false;
+      updStatus('发现新版本 v' + esc(s.version));
+      setDoUpdate('立即更新');
+      if (!localStorage.getItem(dismissedKey('available', s.version))) {
+        showBanner('发现新版本 <b>v' + esc(s.version) + '</b>（当前 ' + cur + '）', '立即更新', true);
+      }
+      break;
+    case 'downloading':
+      $('updateBanner').classList.add('show');
+      $('ubText').innerHTML = '正在下载更新… <b>' + (s.percent || 0) + '%</b>';
+      $('ubPrimary').hidden = true;
+      updStatus('正在下载 ' + (s.percent || 0) + '%');
+      setDoUpdate(null);
+      break;
+    case 'downloaded':
+      updStatus('更新已就绪，重启后安装');
+      setDoUpdate('立即重启');
+      if (!localStorage.getItem(dismissedKey('downloaded', s.version))) {
+        showBanner('新版本 <b>v' + esc(s.version) + '</b> 已就绪，重启后完成安装', '立即重启', true);
+      }
+      break;
+    case 'up-to-date':
+      if (manualCheck) updStatus('已是最新版本（' + cur + '）');
+      manualCheck = false;
+      setDoUpdate(null);
+      break;
+    case 'unconfigured':
+      if (manualCheck) updStatus('未配置更新服务器地址');
+      manualCheck = false;
+      setDoUpdate(null);
+      break;
+    case 'error':
+      if (manualCheck) updStatus('检查失败：' + esc(String(s.message || '未知错误').replace(/\s+/g, ' ').slice(0, 60)));
+      manualCheck = false;
+      setDoUpdate(null);
+      break;
+  }
+}
+window.quota.onUpdateState(onUpdateState);
+window.quota.getUpdateState().then(s => { if (s && s.type && s.type !== 'idle') onUpdateState(s); }).catch(() => { });
+$('btnCheckUpdate').addEventListener('click', () => {
+  manualCheck = true;
+  updStatus('正在检查…');
+  window.quota.updateCheck();
+});
+function startPendingUpdate() {
+  if ((lastUpdateState || {}).type === 'downloaded') window.quota.updateInstall();
+  else window.quota.updateDownload();
+}
+$('btnDoUpdate').addEventListener('click', startPendingUpdate);
+$('ubPrimary').addEventListener('click', startPendingUpdate);
+$('ubLater').addEventListener('click', dismissBanner);
+$('btnSaveUpdateUrl').addEventListener('click', () => {
+  const url = $('updateUrlInput').value.trim();
+  window.quota.updateSettings({ updateUrl: url }).then(() => {
+    updStatus(url ? '已保存自定义更新源' : '已恢复官方更新源');
+  });
+});
+$('updVer').textContent = '当前 v' + (window.quota.version || '');
+$('sigVer').textContent = '额度窗 v' + (window.quota.version || '') + ' · 本地优先 · 凭据只存本机';
 
 /* ---------------- 手动窗口拖拽（透明窗 app-region 会吞点击，改为手动） ---------------- */
 let dragPrev = null, dragPending = null, dragRaf = 0;

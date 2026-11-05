@@ -9,7 +9,7 @@
  *  ③ 置顶关着（桌面部件语义）：koffi 每 100ms 把小窗钉在壁纸层 WorkerW 正上方 ——
  *     Win+D 壁纸跃升时小窗跟着浮上来，全程不压任何程序窗口。
  */
-const { app, BrowserWindow, ipcMain, Tray, Menu, screen, shell, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, screen, shell, nativeImage, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -368,6 +368,9 @@ function createWindow() {
       await js(`document.querySelector('#bottombar button[data-v="vSettings"]').click()`);
       await wait(400);
       await take('settings.png');
+      await js(`document.querySelector('#vSettings').scrollTop = 9999`);   // 滚到底：软件更新卡
+      await wait(300);
+      await take('settings-update.png');
       await js(`document.querySelector('#bottombar button[data-v="vHome"]').click()`);
       await wait(300);
       dockWindow();                         // 吸顶态
@@ -390,8 +393,14 @@ function registerIpc() {
     }
     const next = {};
     for (const k of Object.keys(patch)) {
-      if (['docked', 'dockX', 'winPos', 'edgeDock'].includes(k)) continue; // 几何态只由主进程写
+      if (['docked', 'dockX', 'winPos', 'edgeDock', 'updSha512'].includes(k)) continue; // 几何态与更新消费标记只由主进程写
       next[k] = patch[k];
+    }
+    /* 更新源白名单校验：只收 HTTP(S)，防止 updateUrl 被劫持到恶意更新源 */
+    if ('updateUrl' in next) {
+      const u = String(next.updateUrl || '').trim();
+      if (u && !/^https?:\/\/[^\s]+$/i.test(u)) return store.publicView();
+      next.updateUrl = u.replace(/\/+$/, '');
     }
     Object.assign(settings, next);
     store.setInternal(next);
@@ -440,6 +449,12 @@ function registerIpc() {
   });
 
   ipcMain.handle('data:refresh', () => hub && hub.refreshNow());
+
+  /* OTA 在线更新 */
+  ipcMain.handle('update:check', () => { checkForUpdates(true); return true; });
+  ipcMain.handle('update:download', () => { startUpdateDownload(); return true; });
+  ipcMain.handle('update:install', () => { installUpdate(); return true; });
+  ipcMain.handle('update:state', () => updateState);
 }
 
 /* ---------------- Win+D / 显示桌面 保活自检（--selftest） ----------------
@@ -481,6 +496,209 @@ function runSelfTest() {
   })();
 }
 
+/* ---------------- OTA 在线更新（照搬天气台实战机制） ----------------
+   generic 更新源：dist 里的 latest.yml + 安装包 + .blockmap 一起传到 GitHub Releases，
+   默认源指向 releases/latest/download。流程：启动 / 每 4 小时后台检查 → 发现新版本
+   弹横幅提醒 → 用户点「立即更新」后台下载（带进度）→ 下载完成提示重启安装。
+   防回环：「立即重启」时记下安装包 sha512，同一 offer（同 sha 热修重推）按已装跳过。 */
+const DEFAULT_UPDATE_URL = 'https://github.com/kmnn111/token-quota-widget/releases/latest/download';
+let autoUpdater = null;
+let updateState = { type: 'idle' };
+let updateTimer = null;
+let checkWatchdog = null;  // 检查看门狗：网络异常时更新请求可能永远挂起，超时收场别让界面一直转圈
+let pendingUpdateSha = ''; // 本次下载完成的安装包 sha512；用户确认安装时落盘为消费标记
+
+function otaLog(...args) {
+  console.log('[ota]', ...args);
+  const logPath = process.argv.find(a => a.startsWith('--ota-log='));
+  if (logPath || process.argv.includes('--shot-update')) {
+    try {
+      const p = logPath ? logPath.slice('--ota-log='.length) : path.join(app.getPath('userData'), 'ota-test.log');
+      fs.appendFileSync(p, new Date().toISOString() + ' ' + args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ') + '\n');
+    } catch (e) { }
+  }
+}
+
+function effectiveUpdateUrl() {
+  const cli = process.argv.find(a => a.startsWith('--update-url='));
+  const url = cli ? cli.slice('--update-url='.length) : (settings.updateUrl || DEFAULT_UPDATE_URL);
+  return String(url || '').trim().replace(/\/+$/, '');
+}
+
+/* 系统推送通知：吸顶小窗看不到更新横幅，发现新版本 / 更新就绪时各推一次 */
+const notifiedUpdate = { available: '', downloaded: '' };
+function pushNotify(title, body) {
+  try {
+    if (SHOT_MODE || process.argv.includes('--shot-update') || !Notification.isSupported()) return;
+    const n = new Notification({ title, body });
+    n.on('click', () => {
+      if (win && !win.isDestroyed()) {
+        win.show();
+        if (win.isMinimized()) win.restore();
+        win.focus();
+      }
+    });
+    n.show();
+  } catch (e) { otaLog('notify failed', String(e)); }
+}
+
+function sendUpdateState(s) {
+  if (checkWatchdog) { clearTimeout(checkWatchdog); checkWatchdog = null; } // 有任何状态推进 = 请求活着
+  updateState = s;
+  if (s && s.type === 'available' && s.version && notifiedUpdate.available !== s.version) {
+    notifiedUpdate.available = s.version;
+    pushNotify('额度窗有新版本 v' + s.version, '当前 v' + (s.current || app.getVersion()) + '，点击打开并更新');
+  } else if (s && s.type === 'downloaded' && s.version && notifiedUpdate.downloaded !== s.version) {
+    notifiedUpdate.downloaded = s.version;
+    pushNotify('新版本 v' + s.version + ' 已就绪', '点击打开，重启后完成安装');
+  }
+  if (win && !win.isDestroyed()) win.webContents.send('update:state', s);
+}
+
+function setupAutoUpdate() {
+  try {
+    const { autoUpdater: au } = require('electron-updater');
+    autoUpdater = au;
+    // electron-updater 6.x 未打包时 checkForUpdates 静默 resolve(null)：自检态强制启用
+    if (!app.isPackaged) autoUpdater.forceDevUpdateConfig = true;
+    autoUpdater.autoDownload = false;         // 下载需用户点「立即更新」
+    autoUpdater.autoInstallOnAppQuit = false; // 安装需用户确认重启
+    autoUpdater.on('checking-for-update', () => otaLog('checking'));
+    autoUpdater.on('update-available', (info) => {
+      // 同版本热修重推防回环（消费标记法）：上次「立即重启」安装的 sha512 与本次 offer 相同 = 已装即已拥有
+      const sha = String((info && info.files && info.files[0] && info.files[0].sha512) || '');
+      if (sha && sha === String(settings.updSha512 || '')) {
+        otaLog('skip consumed repush offer', sha.slice(0, 12));
+        sendUpdateState({ type: 'up-to-date', current: app.getVersion() });
+        return;
+      }
+      otaLog('available', info.version);
+      sendUpdateState({ type: 'available', version: info.version, current: app.getVersion() });
+    });
+    autoUpdater.on('update-not-available', () => {
+      otaLog('not-available');
+      sendUpdateState({ type: 'up-to-date', current: app.getVersion() });
+    });
+    autoUpdater.on('download-progress', (p) => sendUpdateState({ type: 'downloading', percent: Math.round(p.percent || 0) }));
+    autoUpdater.on('update-downloaded', (info) => {
+      pendingUpdateSha = String((info && info.files && info.files[0] && info.files[0].sha512) || '');
+      otaLog('downloaded', info.version);
+      sendUpdateState({ type: 'downloaded', version: info.version });
+    });
+    autoUpdater.on('error', (err) => {
+      const msg = String((err && err.message) || err);
+      otaLog('error', msg);
+      sendUpdateState({ type: 'error', message: msg });
+    });
+    otaLog('autoUpdater ready');
+  } catch (e) { otaLog('autoUpdater init failed', String(e)); }
+}
+
+function checkForUpdates(manual) {
+  const cli = process.argv.find(a => a.startsWith('--update-url='));
+  const testing = !!cli || process.argv.includes('--shot-update'); // 自检模式：开发态也真跑更新链路
+  const url = effectiveUpdateUrl();
+  if (!autoUpdater) { if (manual) sendUpdateState({ type: 'error', message: '更新组件未就绪' }); return; }
+  if (!app.isPackaged && !testing) { if (manual) sendUpdateState({ type: 'error', message: '开发模式不支持在线更新' }); return; }
+  if (!url) {
+    otaLog('skip check: update url not configured');
+    if (manual) sendUpdateState({ type: 'unconfigured' });
+    return;
+  }
+  try {
+    autoUpdater.setFeedURL({ provider: 'generic', url });
+    otaLog('checking', url);
+    // 看门狗：请求可能被坏代理/网络挂死（不回调、不报错），25 秒无状态推进按超时收场
+    if (checkWatchdog) clearTimeout(checkWatchdog);
+    checkWatchdog = setTimeout(() => {
+      checkWatchdog = null;
+      otaLog('check timeout');
+      sendUpdateState({ type: 'error', message: '检查超时，请检查网络后重试' });
+    }, 25000);
+    const p = autoUpdater.checkForUpdates();
+    if (p && p.catch) p.catch(err => {
+      const msg = String((err && err.message) || err);
+      otaLog('check error', msg);
+      if (checkWatchdog) { clearTimeout(checkWatchdog); checkWatchdog = null; }
+      if (manual) sendUpdateState({ type: 'error', message: msg });
+    });
+  } catch (e) {
+    const msg = String((e && e.message) || e);
+    otaLog('check threw', msg);
+    if (checkWatchdog) { clearTimeout(checkWatchdog); checkWatchdog = null; }
+    if (manual) sendUpdateState({ type: 'error', message: msg });
+  }
+}
+
+function startUpdateDownload() {
+  if (!autoUpdater) return;
+  otaLog('download start');
+  sendUpdateState({ type: 'downloading', percent: 0 });
+  const p = autoUpdater.downloadUpdate();
+  if (p && p.catch) p.catch(err => { const msg = String((err && err.message) || err); otaLog('download error', msg); sendUpdateState({ type: 'error', message: msg }); });
+}
+
+function installUpdate() {
+  if (!autoUpdater) return;
+  otaLog('quitAndInstall');
+  // 消费标记落盘：本次安装的安装包 sha512 → 重启后同 offer 按「已装」跳过（防循环弹窗）。
+  // 必须在「确认安装」这一刻记录而不是下载完成时——下载后点「稍后」并未拥有，offer 应继续弹。
+  if (pendingUpdateSha) { try { store.setInternal({ updSha512: pendingUpdateSha }); } catch (e) { } }
+  try { autoUpdater.quitAndInstall(false, true); } catch (e) { otaLog('install error', String(e)); }
+}
+
+function scheduleUpdateChecks() {
+  const cli = process.argv.find(a => a.startsWith('--update-url='));
+  setTimeout(() => checkForUpdates(false), cli ? 3000 : 30000); // 启动后首检（测试模式 3 秒）
+  updateTimer = setInterval(() => checkForUpdates(false), 4 * 3600 * 1000); // 每 4 小时
+}
+
+/* ---------------- OTA 更新链路自检（--shot-update，配合 design/fake-ota-server.js） ----------------
+   不带 --update-url= 时走「内置默认源」模式：点「检查更新」应得到真实结果而非「未配置」。 */
+if (process.argv.includes('--shot-update')) {
+  app.whenReady().then(() => {
+    setTimeout(async () => {
+      const js = (code) => win.webContents.executeJavaScript(code).catch(() => null);
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      await js(`document.querySelector('#bottombar button[data-v="vSettings"]').click()`);
+      await sleep(300);
+      await js(`document.getElementById('btnCheckUpdate').click()`);
+
+      if (!process.argv.find(a => a.startsWith('--update-url='))) {
+        let st = '';
+        for (let i = 0; i < 30; i++) {
+          await sleep(1000);
+          st = await js(`document.getElementById('updateStatus').textContent`);
+          if (st && st !== '正在检查…') break;
+        }
+        const ok = !!st && !/未配置|更新组件未就绪/.test(String(st));
+        console.log('[ota-shot] default source status:', JSON.stringify(st), ok ? 'PASS' : 'FAIL');
+        console.log('[ota-shot] DONE', ok ? 'PASS' : 'FAIL');
+        app.exit(0);
+        return;
+      }
+
+      /* 假源链路：检查 → available（横幅）→ 下载 → downloaded（立即重启） */
+      let t0 = Date.now();
+      while (updateState.type !== 'available' && updateState.type !== 'error' && Date.now() - t0 < 20000) await sleep(400);
+      console.log('[ota-shot] state after check:', JSON.stringify(updateState));
+      const b1 = await js(`JSON.stringify({ visible: document.getElementById('updateBanner').classList.contains('show'), text: document.getElementById('ubText').textContent, primary: document.getElementById('ubPrimary').textContent })`);
+      let bannerOk = false;
+      try { const o = JSON.parse(b1); bannerOk = o.visible && o.text && o.primary === '立即更新'; } catch (e) { }
+      console.log('[ota-shot] banner content', b1, bannerOk ? 'PASS' : 'FAIL');
+
+      await js(`document.getElementById('ubPrimary').click()`);   // 立即更新 → 下载
+      t0 = Date.now();
+      while (updateState.type !== 'downloaded' && updateState.type !== 'error' && Date.now() - t0 < 60000) await sleep(500);
+      console.log('[ota-shot] final state:', JSON.stringify(updateState));
+      const du = await js(`document.getElementById('btnDoUpdate').hidden ? '' : document.getElementById('btnDoUpdate').textContent`);
+      console.log('[ota-shot] settings update button', JSON.stringify(du), du === '立即重启' ? 'PASS' : 'FAIL');
+      console.log('[ota-shot] DONE', (updateState.type === 'downloaded' && du === '立即重启') ? 'PASS' : 'FAIL');
+      app.exit(0);
+    }, 2500);
+  });
+}
+
 /* ---------------- 启动 ---------------- */
 app.whenReady().then(() => {
   store = createStore(app.getPath('userData'));
@@ -496,6 +714,8 @@ app.whenReady().then(() => {
   createWindow();
   registerIpc();
   buildTray();
+  setupAutoUpdate();
+  scheduleUpdateChecks();
 
   if (process.argv.includes('--selftest')) {
     try { app.setPath('userData', app.getPath('userData') + '-selftest'); } catch (e) { }

@@ -58,9 +58,12 @@ function demoUsage() {
     return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
   };
   const perDay = {};
+  const perDayInfo = {};
   let d = new Date();
   for (let i = 0; i < 30; i++) {
-    perDay[ymd(d)] = Math.round((Math.sin(i / 5) * 0.5 + 0.7) * 9e6 + i % 7 * 1.5e6);
+    const k = ymd(d);
+    perDay[k] = Math.round((Math.sin(i / 5) * 0.5 + 0.7) * 9e6 + i % 7 * 1.5e6);
+    perDayInfo[k] = { sessions: 2 + (i * 5 % 7), tools: 2 + (i % 3) };   // 确定性演示值
     d = new Date(d.getTime() - 864e5);
   }
   const today = ymd(new Date());
@@ -69,7 +72,7 @@ function demoUsage() {
   return {
     day, month, total: month * 4.7,
     costDay: '¥104.20', costMonth: '¥2,931.00',
-    perDay,
+    perDay, perDayInfo,
     tools: [
       { id: 'mimo', name: 'MiMo Code', color: '#ff8a4c', tokens: month * 0.42 },
       { id: 'claude', name: 'Claude Code', color: '#e08b62', tokens: month * 0.31 },

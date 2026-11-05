@@ -86,6 +86,47 @@ body.dark .seg button.on { background: rgba(255, 255, 255, .14); box-shadow: non
 .uz { font-style: normal; font-size: 8.5px; color: var(--ink3); letter-spacing: .02em; margin-left: 1px; font-weight: 400; }
 .tnum .uz { font-size: 11px; margin-left: 2px; }
 
+/* ============ 首页 hero：左大数字 + 右月历 ============ */
+.hero { display: flex; gap: 12px; align-items: flex-start; }
+.hleft { width: 148px; flex: none; padding-top: 2px; }
+.calcard {
+  width: 224px; flex: none; background: var(--card); border: 1px solid var(--line);
+  border-radius: 15px; padding: 10px 11px 9px; position: relative;
+}
+.cal-nav { display: flex; gap: 2px; }
+.cal-nav button {
+  border: 0; background: none; color: var(--ink3); font-size: 12px; line-height: 1;
+  width: 18px; height: 18px; border-radius: 7px; cursor: pointer; font-family: inherit;
+}
+.cal-nav button:hover { background: var(--glass-soft); color: var(--ink); }
+.cal-nav button:disabled { opacity: .35; cursor: default; background: none; color: var(--ink3); }
+.wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 3px; }
+.wk i { font-style: normal; font-size: 8.5px; color: var(--ink3); text-align: center; }
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.grid .d {
+  height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-variant-numeric: tabular-nums; color: var(--ink); position: relative;
+}
+.grid .d.future { color: var(--ink3); opacity: .55; background: var(--glass-soft); }
+.grid .d.zero { color: var(--ink3); background: rgba(95, 199, 190, .07); }
+.grid .d.has { cursor: default; }
+.grid .d.today { box-shadow: 0 0 0 1.5px var(--tint); font-weight: 700; }
+.calhint { font-size: 8.5px; color: var(--ink3); margin-top: 7px; letter-spacing: .02em; }
+.cal-tip {
+  position: absolute; z-index: 9; width: 152px;
+  background: rgba(255, 255, 255, .97); border: 1px solid var(--line);
+  border-radius: 11px; padding: 9px 11px 8px; box-shadow: 0 12px 28px rgba(30, 50, 90, .2);
+  pointer-events: none;
+}
+body.dark .cal-tip { background: rgba(28, 38, 62, .97); }
+.cal-tip .tt { font-size: 9px; color: var(--ink3); letter-spacing: .05em; }
+.cal-tip .tn { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 1px; letter-spacing: -.3px; }
+.cal-tip .tn small { font-size: 9.5px; color: var(--ink2); font-weight: 400; margin-left: 2px; letter-spacing: 0; }
+.cal-tip .tn .uz { font-size: 10px; }
+.cal-tip .tr { font-size: 9.5px; color: var(--ink2); margin-top: 2.5px; font-variant-numeric: tabular-nums; }
+.cal-tip .td { font-size: 9px; margin-top: 4px; color: var(--warn); font-weight: 600; }
+.cal-tip .td.down { color: var(--tint); }
+
 /* 卡片通用 */
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 15px; padding: 10px 12px; margin-top: 10px; }
 .mh { display: flex; justify-content: space-between; align-items: baseline; font-size: 10.5px; margin-bottom: 8px; }
@@ -254,5 +295,38 @@ body.dark .src-item button { background: rgba(255, 255, 255, .1); }
 .src-item button:hover { color: var(--ink); background: rgba(255, 255, 255, .95); transform: scale(1.08); }
 .src-item button.src-del:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
 .frm button.ghost { flex: none; width: 86px; color: var(--ink2); box-shadow: none; }
+
+/* 软件更新（OTA） */
+.upd-row { display: flex; align-items: center; gap: 8px; margin: 4px 0 2px; }
+.upd-row button {
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .85); color: var(--ink);
+  border-radius: 11px; padding: 7px 14px; font-size: 11px; cursor: pointer; font-family: inherit;
+  box-shadow: 0 1px 3px rgba(30, 50, 90, .1); flex: none;
+}
+.upd-status { font-size: 9.5px; color: var(--ink2); line-height: 1.5; flex: 1; min-width: 0; }
+
+/* 更新提醒横幅（浮在底栏上方，.show 显隐） */
+.update-banner {
+  position: absolute; left: 14px; right: 14px; bottom: 64px; z-index: 30;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255, 255, 255, .95); border: 1px solid var(--line);
+  border-radius: 14px; padding: 10px 12px;
+  box-shadow: 0 12px 30px rgba(30, 50, 90, .22);
+  opacity: 0; transform: translateY(10px); pointer-events: none;
+  transition: opacity .22s ease, transform .22s cubic-bezier(.22, .7, .3, 1);
+}
+body.dark .update-banner { background: rgba(26, 36, 60, .96); }
+.update-banner.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.frame.docked .update-banner { opacity: 0; pointer-events: none; }
+.ub-text { flex: 1; min-width: 0; font-size: 10.5px; color: var(--ink2); line-height: 1.55; }
+.ub-text b { color: var(--ink); font-weight: 600; }
+.ub-actions { display: flex; gap: 6px; flex: none; }
+.ub-actions button {
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .85); color: var(--ink2);
+  border-radius: 10px; padding: 6px 12px; font-size: 10px; cursor: pointer; font-family: inherit;
+}
+.ub-actions .ub-primary {
+  background: var(--tint); border-color: transparent; color: #fff; font-weight: 600;
+}
 
 .sig { padding: 8px 18px 12px; font-size: 9px; color: var(--ink3); letter-spacing: .1em; }

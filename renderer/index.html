@@ -22,10 +22,24 @@
 
     <!-- ================= 首页 ================= -->
     <div class="view on" id="vHome">
-      <div class="tlabel" id="tLabel">总 Token 用量</div>
-      <div class="tnum" id="tNum">—</div>
-      <div class="tcost" id="tCost"></div>
-      <div class="tmeta" id="tMeta"></div>
+      <div class="hero">
+        <div class="hleft">
+          <div class="tlabel" id="tLabel">总 Token 用量</div>
+          <div class="tnum" id="tNum">—</div>
+          <div class="tcost" id="tCost"></div>
+          <div class="tmeta" id="tMeta"></div>
+        </div>
+        <!-- 当月用量月历：格子色深 = 当日用量，悬停看当日详情 -->
+        <div class="calcard" id="calCard">
+          <div class="mh"><span id="calTitle">本月</span>
+            <span class="cal-nav"><button id="calPrev" title="上个月">‹</button><button id="calNext" title="下个月">›</button></span>
+          </div>
+          <div class="wk"><i>日</i><i>一</i><i>二</i><i>三</i><i>四</i><i>五</i><i>六</i></div>
+          <div class="grid" id="calGrid"></div>
+          <div class="calhint">色深 = 当日用量 · 悬停看详情</div>
+          <div class="cal-tip" id="calTip" hidden></div>
+        </div>
+      </div>
 
       <!-- 置顶数据源卡（标题按实际数据源动态显示） -->
       <div class="card" id="pinCard">
@@ -69,7 +83,7 @@
         <div id="ghList"></div>
         <div class="gh-foot" id="ghFoot">GitHub Trending · 国人开源优先 · 每 30 分钟刷新 · 点击打开仓库页</div>
       </div>
-      <div class="sig">额度窗 v1.0 · 本地优先 · 凭据只存本机</div>
+      <div class="sig" id="sigVer">额度窗 · 本地优先 · 凭据只存本机</div>
     </div>
 
     <!-- ================= 额度详情 ================= -->
@@ -135,6 +149,30 @@
           <button id="btnSaveAppearance">保存</button>
           <button id="btnRefreshNow">立即刷新</button>
         </div>
+      </div>
+
+      <div class="card frm">
+        <div class="mh"><span>软件更新</span><b id="updVer"></b></div>
+        <div class="upd-row">
+          <button id="btnCheckUpdate">检查更新</button>
+          <button id="btnDoUpdate" hidden>立即更新</button>
+          <span class="upd-status" id="updateStatus">—</span>
+        </div>
+        <label>更新服务器地址（HTTP/HTTPS · 留空用官方源）</label>
+        <input id="updateUrlInput" type="text" placeholder="https://github.com/kmnn111/token-quota-widget/releases/latest/download">
+        <div class="btnrow">
+          <button id="btnSaveUpdateUrl" class="ghost">保存更新源</button>
+        </div>
+        <div class="hint">默认每 4 小时后台检查一次；发现新版本会弹横幅提醒，下载与安装都由你确认。</div>
+      </div>
+    </div>
+
+    <!-- ================= 更新提醒横幅（显隐走 .show 类） ================= -->
+    <div id="updateBanner" class="update-banner">
+      <div class="ub-text" id="ubText"></div>
+      <div class="ub-actions">
+        <button class="ub-primary" id="ubPrimary" hidden></button>
+        <button class="ub-later" id="ubLater">稍后</button>
       </div>
     </div>
 

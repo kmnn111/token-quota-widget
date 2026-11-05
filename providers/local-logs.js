@@ -51,6 +51,7 @@ function walkJsonl(root, cb, budget) {
 
 function scanTool(tool, dayBudget) {
   const perDay = new Map();      // 'YYYY-MM-DD' -> tokens
+  const dayFiles = new Map();    // 'YYYY-MM-DD' -> Set(文件路径)：逐日会话数
   const sessions = [];           // 最近会话
   let total = 0, files = 0;
   for (const root of tool.roots) {
@@ -59,6 +60,7 @@ function scanTool(tool, dayBudget) {
       let mtime = 0;
       try { mtime = fs.statSync(p).mtimeMs; } catch (e) { }
       let day = null, dayTokens = 0;
+      const ymds = new Set();
       let line;
       try { line = fs.readFileSync(p, 'utf8'); } catch (e) { return; }
       for (const raw of line.split('\n')) {
@@ -73,14 +75,19 @@ function scanTool(tool, dayBudget) {
         const ts = j.timestamp || j.created_at || j.time || mtime || null;
         const ymd = ts ? localYmd(ts) : null;
         dayTokens += t; total += t;
-        if (ymd) perDay.set(ymd, (perDay.get(ymd) || 0) + t);
+        if (ymd) { perDay.set(ymd, (perDay.get(ymd) || 0) + t); ymds.add(ymd); }
+      }
+      for (const ymd of ymds) {
+        let s = dayFiles.get(ymd);
+        if (!s) dayFiles.set(ymd, s = new Set());
+        s.add(p);
       }
       if (dayTokens > 0) {
         sessions.push({ tool: tool.name, file: path.basename(p), tokens: dayTokens, mtime });
       }
     }, dayBudget || 4000);
   }
-  return { perDay, total, files, sessions };
+  return { perDay, dayFiles, total, files, sessions };
 }
 
 function fmtCost(usd) {
@@ -97,11 +104,23 @@ module.exports = {
     const tools = [];
     const perDayAll = new Map();
     const sessionsAll = [];
+    const daySess = new Map();   // ymd -> Set(文件)：逐日会话数
+    const dayTools = new Map();  // ymd -> Set(工具 id)：逐日工具数
     for (const t of TOOLS) {
       const r = scanTool(t, dayBudget);
       if (r.files === 0 && r.total === 0) continue;
       tools.push({ id: t.id, name: t.name, color: t.color, tokens: r.total, files: r.files });
       for (const [d, v] of r.perDay) perDayAll.set(d, (perDayAll.get(d) || 0) + v);
+      for (const [d, set] of (r.dayFiles || new Map())) {
+        let s = daySess.get(d);
+        if (!s) daySess.set(d, s = new Set());
+        for (const f of set) s.add(f);
+      }
+      for (const d of (r.dayFiles || new Map()).keys()) {
+        let s = dayTools.get(d);
+        if (!s) dayTools.set(d, s = new Set());
+        s.add(t.id);
+      }
       for (const s of r.sessions) sessionsAll.push(s);
     }
     if (!tools.length) throw Object.assign(new Error('本机未发现 Claude Code / Codex / WorkBuddy 会话日志'), { status: 'unconfigured' });
@@ -118,11 +137,22 @@ module.exports = {
     /* 估算成本：输入按 1/3 输出按 2/3 的粗口径（够看量级，不当账本） */
     const est = (t) => t / 1e6 * ((DEFAULT_PRICES.in + DEFAULT_PRICES.out * 2) / 3);
 
+    /* 逐日会话/工具数（月历悬停详情用），与 perDay 同窗口（近 30 天） */
+    const dayKeys = [...perDayAll.keys()].sort().slice(-30);
+    const perDayInfo = {};
+    for (const d of dayKeys) {
+      perDayInfo[d] = {
+        sessions: (daySess.get(d) || new Set()).size,
+        tools: (dayTools.get(d) || new Set()).size
+      };
+    }
+
     return {
       usage: {
         day, month: monthT, total: [...perDayAll.values()].reduce((a, b) => a + b, 0),
         costDay: fmtCost(est(day)), costMonth: fmtCost(est(monthT)),
-        perDay: Object.fromEntries([...perDayAll.entries()].sort().slice(-30)),
+        perDay: Object.fromEntries(dayKeys.map(d => [d, perDayAll.get(d)])),
+        perDayInfo,
         tools,
         sessions: sessionsAll.slice(0, 8).map(s => ({
           title: s.tool + ' · ' + s.file.replace(/\.jsonl$/, ''),

@@ -1,0 +1,3 @@
+provider: generic
+url: https://github.com/kmnn111/token-quota-widget/releases/latest/download
+updaterCacheDirName: token-quota-widget-updater
