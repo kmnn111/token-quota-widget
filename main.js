@@ -340,7 +340,10 @@ function createWindow() {
   if (process.argv.includes('--dev')) win.webContents.openDevTools({ mode: 'detach' });
   if (SHOT_MODE) {
     const fsx = require('fs');
-    const outDir = path.join(__dirname, 'shot-out');
+    /* 打包后 asar 只读，截图落到用户图片目录；源码运行仍落仓库 shot-out/ */
+    const outDir = app.isPackaged
+      ? path.join(app.getPath('pictures') || app.getPath('temp'), '额度窗截图')
+      : path.join(__dirname, 'shot-out');
     try { fsx.mkdirSync(outDir, { recursive: true }); } catch (e) { }
     const wait = ms => new Promise(r => setTimeout(r, ms));
     const take = (name) => win.webContents.capturePage().then(img => {
