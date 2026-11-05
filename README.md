@@ -80,14 +80,19 @@ npm install
 npm start
 ```
 
-## 快速上手：接入 MiMo Token Plan
+## 快速上手：配置数据源
 
-1. 启动额度窗，底栏切到 **设置**
-2. **通道 A（推荐）**：在 [MiMo 开放平台](https://mimo.mi.com) 的 Token Plan 页拿到 `tp-` 开头的专用 API Key，粘进第一栏保存
-3. **通道 B（可选）**：浏览器登录 `platform.xiaomimimo.com` → F12 → Network → 任一 `/api/v1` 请求 → 复制完整 Cookie 请求头（须含 `api-platform_serviceToken` 与 `userId`）粘进第二栏
-4. 回到首页：置顶卡立刻变成真实额度；吸顶小窗第一帧固定显示 MiMo
+1. 启动额度窗，底栏切到 **设置 → 数据源**
+2. 选择类型（MiMo Token Plan / 自定义端点·中转站）后填写凭据，点 **添加**；可添加多个数据源（多个账号 / 多个中转站），每条独立刷新、独立显示
+3. 已添加的条目出现在上方清单里，卡片头显示「已添加 N 个」，每条可 **✎ 编辑**（凭据留空 = 保持原值）或 **✕ 删除**
+4. 回到首页：置顶卡按第一个数据源显示真实额度（标题随数据源名变化），小窗多厂商轮转
 
-> 计划 API Key 与推理网关都读不到用量接口，控制台网关只认 Cookie —— 所以两条通道互补：API Key 管长期稳定，Cookie 管明细和余额。Cookie 失效时 MiMo 卡自动雾化并提示，其余厂商不受影响。
+**接入 MiMo Token Plan**：
+
+- **通道 A（推荐）**：在 [MiMo 开放平台](https://mimo.mi.com) 的 Token Plan 页拿到 `tp-` 开头的专用 API Key，填进 API Key 栏
+- **通道 B（可选）**：浏览器登录 `platform.xiaomimimo.com` → F12 → Network → 任一 `/api/v1` 请求 → 复制完整 Cookie 请求头（须含 `api-platform_serviceToken` 与 `userId`）填进 Cookie 栏；可同时填 Key + Cookie
+
+> 计划 API Key 与推理网关都读不到用量接口，控制台网关只认 Cookie —— 所以两条通道互补：API Key 管长期稳定，Cookie 管明细和余额。Cookie 失效时该卡自动雾化并提示，其余数据源不受影响。
 
 ## 设置项
 

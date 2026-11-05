@@ -220,4 +220,35 @@ body.dark .frm button { background: rgba(255, 255, 255, .1); box-shadow: none; }
 .frm label.chk { display: flex; align-items: center; gap: 7px; cursor: pointer; font-size: 11px; margin-top: 4px; }
 .frm input[type="checkbox"] { width: auto; height: auto; padding: 0; border: none; background: none; accent-color: #5fc7be; cursor: pointer; }
 
+/* 数据源清单：每条一个条目，编辑 / 删除小按钮 */
+.src-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px; margin-bottom: 6px;
+  background: rgba(255, 255, 255, .55); border: 1px solid var(--line); border-radius: 11px;
+  transition: background .16s, transform .16s;
+}
+.src-item:hover { background: rgba(123, 156, 240, .12); transform: translateX(1px); }
+body.dark .src-item { background: var(--glass-soft); }
+.src-item .src-type {
+  flex: none; font-size: 8.5px; font-weight: 700; line-height: 1;
+  padding: 3.5px 7px; border-radius: 8px; letter-spacing: .05em;
+}
+.src-type.t-mimo { color: var(--mimo); background: color-mix(in srgb, var(--mimo) 14%, transparent); border: 1px solid color-mix(in srgb, var(--mimo) 32%, transparent); }
+.src-type.t-custom { color: #7d6bd8; background: rgba(125, 107, 216, .12); border: 1px solid rgba(125, 107, 216, .3); }
+body.dark .src-type.t-custom { color: #a99af0; }
+.src-item .src-main { flex: 1; min-width: 0; }
+.src-item .src-main b { display: block; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.src-item .src-main i { display: block; font-style: normal; font-size: 9px; color: var(--ink3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.src-item button {
+  flex: none; width: 26px; height: 26px; padding: 0;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: rgba(255, 255, 255, .8); color: var(--ink2);
+  font-size: 11px; cursor: pointer; font-family: inherit;
+  transition: all .15s;
+}
+body.dark .src-item button { background: rgba(255, 255, 255, .1); }
+.src-item button:hover { color: var(--ink); background: rgba(255, 255, 255, .95); transform: scale(1.08); }
+.src-item button.src-del:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+.frm button.ghost { flex: none; width: 86px; color: var(--ink2); box-shadow: none; }
+
 .sig { padding: 8px 18px 12px; font-size: 9px; color: var(--ink3); letter-spacing: .1em; }

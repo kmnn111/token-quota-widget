@@ -65,22 +65,28 @@ function renderTotals() {
   $('tMeta').textContent = (u.tools || []).length + ' 个工具' + (running ? ' · ' + running + ' 个会话运行中' : '');
 }
 
-/* ---------------- MiMo 置顶卡 ---------------- */
-function findMimo(provs) {
-  return provs.find(p => /mimo/i.test(p.name) || p.id === 'demo-mimo') || provs[0];
+/* ---------------- 置顶数据源卡（标题/主题按实际数据源动态显示） ---------------- */
+function isMimoProv(p) {
+  return !!p && (p.id === 'demo-mimo' || p.type === 'mimo' || /^mimo-/.test(p.id || '') || /mimo/i.test(p.name || ''));
 }
-function renderMimo(provs) {
-  const p = findMimo(provs);
+function findPin(provs) {
+  /* 不预设任何厂商：置顶卡直接展示第一个数据源（配置顺序） */
+  return provs[0];
+}
+function renderPin(provs) {
+  const p = findPin(provs);
   if (!p) return;
-  const card = $('mimoCard');
+  const card = $('pinCard');
+  card.classList.toggle('mimo', isMimoProv(p));   // MiMo 橙色主题只给真实 MiMo 源
   card.classList.toggle('fog', p.status === 'expired' || p.status === 'error');
-  $('mimoMeta').textContent = p.status === 'expired' ? '登录态失效 · 请更新 Cookie'
+  $('pinTitle').textContent = '额度 · ' + (p.name || '数据源');
+  $('pinMeta').textContent = p.status === 'expired' ? '登录态失效 · 请更新凭据'
     : p.status === 'unconfigured' ? '未配置'
     : p.status === 'error' ? '请求失败'
     : (p.plan || '') + (p.source === 'demo' ? ' · 演示' : '');
   const w = (p.windows || []).slice(0, 2);
   /* 整段重绘，避免逐元素改宽度时的样式竞争 */
-  $('mimoBody').innerHTML = w.map(x => {
+  $('pinBody').innerHTML = w.map(x => {
     const left = x.leftPct;
     return `<div class="ql"><span>${esc(x.label)}</span>
         <b class="${left != null && left < 25 ? 'hot' : ''}">${left != null ? '剩余 ' + left + '%' : '—'}</b></div>
@@ -91,7 +97,7 @@ function renderMimo(provs) {
 
 /* ---------------- 厂商列表（首页） ---------------- */
 function renderProviders(all) {
-  const top = findMimo(all);
+  const top = findPin(all);
   const provs = top && all.length > 1 ? all.filter(p => p !== top) : all;
   const head = document.querySelector('#provList').parentElement.querySelector('.mh span');
   if (head) head.textContent = provs.length !== all.length ? '其他厂商' : '额度';
@@ -177,7 +183,7 @@ function renderTrending() {
 function renderLimits() {
   const provs = (snap && snap.snapshot && snap.snapshot.providers) || [];
   $('limitsFull').innerHTML = provs.map(p => `
-    <div class="card ${p.id === 'demo-mimo' || /mimo/i.test(p.name) ? 'mimo' : ''}">
+    <div class="card ${isMimoProv(p) ? 'mimo' : ''}">
       <div class="mh"><span style="color:${p.color}">${esc(p.name)}</span>
         <b>${p.status === 'ok' || p.status === 'demo' ? esc(p.plan || '') : p.status === 'expired' ? '登录态失效' : esc((p.error || p.status).slice(0, 26))}</b></div>
       ${(p.windows || []).map(w => `
@@ -192,7 +198,7 @@ function renderLimits() {
 /* ---------------- 小窗轮转 ---------------- */
 function buildRoster() {
   const provs = (snap && snap.snapshot && snap.snapshot.providers) || [];
-  const pinned = findMimo(provs);   // 置顶厂商固定第一帧，其余按紧迫度排
+  const pinned = findPin(provs);   // 置顶厂商固定第一帧，其余按紧迫度排
   roster = provs.filter(p => (p.status === 'ok' || p.status === 'demo') && (p.windows || []).length)
     .map(p => {
       /* 该家最紧急的额度窗（剩余最低） */
@@ -285,7 +291,7 @@ function renderAll() {
   $('stateDot').className = 'dot' + (bad ? ' err' : warn ? ' warn' : '');
   $('stateTxt').textContent = bad ? '部分源失效' : warn ? '有额度临界' : '已连接';
   renderTotals();
-  renderMimo(provs);
+  renderPin(provs);
   renderProviders(provs);
   renderTools();
   renderHeat();
@@ -308,15 +314,8 @@ window.quota.getSettings().then(s => {
   $('inRotate').value = settings.rotateSeconds || 5;
   $('inRefresh').value = settings.refreshMinutes || 5;
   $('inTop').checked = !!settings.alwaysOnTop;
-  const provs = settings.providers || [];
-  const mimo = provs.find(p => p.type === 'mimo');
-  $('mimoState').textContent = mimo ? (mimo.hasApiKey ? '已配置 · API Key' : mimo.hasCookie ? '已配置 · Cookie' : '未配置') : '未配置';
-  const custom = provs.find(p => p.type === 'custom');
-  if (custom) {
-    $('inCustomName').value = custom.name || '';
-    $('inCustomUrl').value = custom.url || '';
-    $('inCustomMap').value = custom.map ? Object.entries(custom.map).map(([k, v]) => k + '=' + v).join(', ') : '';
-  }
+  syncTypeForm();
+  renderSrcList();
 }).catch(() => { /* 设置读取失败不阻塞界面 */ });
 $('btnRefreshNow').addEventListener('click', () => window.quota.refresh());
 
@@ -351,41 +350,122 @@ $('pill').addEventListener('mouseenter', () => { hoverPaused = true; });
 $('pill').addEventListener('mouseleave', () => { hoverPaused = false; });
 $('pill').addEventListener('dblclick', () => window.quota.winAction('dock'));
 
-/* 设置保存 */
+/* ---------------- 数据源管理：多条目清单 + 添加 / 编辑 / 删除 ---------------- */
 function saveProviders(next) {
-  return window.quota.updateSettings({ providers: next, demo: next.some(p => p.type === 'mimo' || p.type === 'custom') ? false : settings.demo }).then(() => window.quota.refresh());
+  /* 有任何真实源就退出演示；全删完回到演示模式（开箱可见） */
+  const demo = next.length ? false : true;
+  return window.quota.updateSettings({ providers: next, demo }).then(s => {
+    /* 同步本地视图（含 hasApiKey/hasCookie 打码态），避免连续增删基于旧列表互相覆盖 */
+    if (s && s.providers) settings = s;
+    renderSrcList();
+    return window.quota.refresh();
+  });
 }
-$('btnSaveMimo').addEventListener('click', () => {
-  const provs = (settings.providers || []).filter(p => p.type !== 'mimo');
-  const apiKey = $('inMimoKey').value.trim();
-  const cookie = $('inMimoCookie').value.trim();
-  if (!apiKey && !cookie) { $('mimoState').textContent = '至少填一项'; return; }
-  provs.push({ id: 'mimo-1', type: 'mimo', name: 'MiMo Token Plan', enabled: true, apiKey, cookie });
-  saveProviders(provs).then(() => { $('mimoState').textContent = '已保存'; });
+function srcSummary(p) {
+  if (p.type === 'mimo') {
+    const bits = [p.hasApiKey ? 'API Key' : '', p.hasCookie ? 'Cookie' : ''].filter(Boolean);
+    return bits.length ? bits.join(' + ') : '未配置凭据';
+  }
+  try { return new URL(p.url).host + (p.map && p.map.windows ? ' · 多额度窗' : ''); } catch (e) { return p.url || '未配置地址'; }
+}
+function renderSrcList() {
+  const provs = settings.providers || [];
+  $('srcCount').textContent = provs.length ? '已添加 ' + provs.length + ' 个' : '0 个';
+  $('srcEmpty').style.display = provs.length ? 'none' : '';
+  $('srcList').innerHTML = provs.map(p => `
+    <div class="src-item" data-id="${esc(p.id)}">
+      <span class="src-type t-${p.type === 'mimo' ? 'mimo' : 'custom'}">${p.type === 'mimo' ? 'MiMo' : '中转站'}</span>
+      <span class="src-main"><b>${esc(p.name || (p.type === 'mimo' ? 'MiMo Token Plan' : '自定义端点'))}</b>
+        <i>${esc(srcSummary(p))}</i></span>
+      <button class="src-edit" data-act="edit" title="编辑">✎</button>
+      <button class="src-del" data-act="del" title="删除">✕</button>
+    </div>`).join('');
+}
+function setEditState(editing) {
+  $('btnAddSrc').textContent = editing ? '保存修改' : '添加';
+  $('btnCancelEdit').hidden = !editing;
+}
+function syncTypeForm() {
+  const t = $('inSrcType').value;
+  $('frmMimo').style.display = t === 'mimo' ? '' : 'none';
+  $('frmCustom').style.display = t === 'custom' ? '' : 'none';
+}
+function clearForm() {
+  $('inMimoKey').value = ''; $('inMimoCookie').value = '';
+  $('inCustomName').value = ''; $('inCustomUrl').value = ''; $('inCustomToken').value = ''; $('inCustomMap').value = '';
+}
+let editingId = null;
+$('inSrcType').addEventListener('change', () => { editingId = null; setEditState(false); syncTypeForm(); });
+$('btnCancelEdit').addEventListener('click', () => {
+  editingId = null; setEditState(false); clearForm(); syncTypeForm();
 });
-$('btnDelMimo').addEventListener('click', () => {
-  saveProviders((settings.providers || []).filter(p => p.type !== 'mimo')).then(() => {
-    $('inMimoKey').value = ''; $('inMimoCookie').value = ''; $('mimoState').textContent = '已移除';
-  });
+$('srcList').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-act]');
+  if (!btn) return;
+  const id = btn.closest('.src-item').dataset.id;
+  const p = (settings.providers || []).find(x => x.id === id);
+  if (!p) return;
+  if (btn.dataset.act === 'edit') {
+    /* 编辑：回填表单（凭据打码值不可回读，留空 = 保持原值，填了 = 覆盖） */
+    editingId = id;
+    $('inSrcType').value = p.type;
+    syncTypeForm();
+    clearForm();
+    if (p.type === 'mimo') {
+      $('inMimoKey').placeholder = p.hasApiKey ? '已配置 · 留空保持不变' : 'tp-xxxxxxxx';
+      $('inMimoCookie').placeholder = p.hasCookie ? '已配置 · 留空保持不变' : 'api-platform_serviceToken=…; userId=…';
+    } else {
+      $('inCustomName').value = p.name || '';
+      $('inCustomUrl').value = p.url || '';
+      $('inCustomMap').value = p.map ? Object.entries(p.map).map(([k, v]) => k + '=' + v).join(', ') : '';
+      $('inCustomToken').placeholder = p.hasToken ? '已配置 · 留空保持不变' : 'sk-…';
+    }
+    setEditState(true);
+    $('frmMimo').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else {
+    /* 删除单条 */
+    saveProviders((settings.providers || []).filter(x => x.id !== id)).then(() => {
+      if (editingId === id) { editingId = null; setEditState(false); clearForm(); syncTypeForm(); }
+    });
+  }
 });
-$('btnSaveCustom').addEventListener('click', () => {
-  const provs = (settings.providers || []).filter(p => p.type !== 'custom');
-  const url = $('inCustomUrl').value.trim();
-  if (!url) return;
-  const map = {};
-  ($('inCustomMap').value || '').split(',').forEach(kv => {
-    const [k, v] = kv.split('=').map(x => x && x.trim());
-    if (k && v) map[k] = v;
-  });
-  provs.push({
-    id: 'custom-1', type: 'custom', name: $('inCustomName').value.trim() || '自定义端点',
-    enabled: true, url, token: $('inCustomToken').value.trim(), map
-  });
-  saveProviders(provs);
-});
-$('btnDelCustom').addEventListener('click', () => {
-  saveProviders((settings.providers || []).filter(p => p.type !== 'custom')).then(() => {
-    $('inCustomName').value = ''; $('inCustomUrl').value = ''; $('inCustomToken').value = ''; $('inCustomMap').value = '';
+$('btnAddSrc').addEventListener('click', () => {
+  const type = $('inSrcType').value;
+  const provs = (settings.providers || []).slice();
+  const editing = editingId ? provs.find(x => x.id === editingId) : null;
+  const entry = editing || { id: type + '-' + Date.now().toString(36), type, enabled: true };
+
+  if (type === 'mimo') {
+    const apiKey = $('inMimoKey').value.trim();
+    const cookie = $('inMimoCookie').value.trim();
+    /* 编辑时留空 = 保持原值（main.js 对打码/空值做深合并） */
+    if (!editing && !apiKey && !cookie) { $('inMimoKey').placeholder = '至少填一项：API Key 或 Cookie'; return; }
+    if (!editing) {
+      /* 多账号自动编号区分：MiMo Token Plan / MiMo Token Plan 2 … */
+      const n = provs.filter(x => x.type === 'mimo').length + 1;
+      Object.assign(entry, { type: 'mimo', name: n > 1 ? 'MiMo Token Plan ' + n : 'MiMo Token Plan' });
+    }
+    if (apiKey) entry.apiKey = apiKey;
+    if (cookie) entry.cookie = cookie;
+  } else {
+    const url = $('inCustomUrl').value.trim();
+    if (!url) { $('inCustomUrl').placeholder = '请填写额度 JSON 地址'; return; }
+    const map = {};
+    ($('inCustomMap').value || '').split(',').forEach(kv => {
+      const [k, v] = kv.split('=').map(x => x && x.trim());
+      if (k && v) map[k] = v;
+    });
+    Object.assign(entry, {
+      type: 'custom', name: $('inCustomName').value.trim() || '自定义端点',
+      url, map
+    });
+    const token = $('inCustomToken').value.trim();
+    if (token) entry.token = token; else delete entry.token;
+  }
+  if (!editing) provs.push(entry);
+  saveProviders(provs).then(() => {
+    editingId = null; setEditState(false); clearForm(); syncTypeForm();
+    $('srcHint').textContent = editing ? '已保存修改' : '已添加 · 可继续添加下一个';
   });
 });
 $('btnSaveAppearance').addEventListener('click', () => {

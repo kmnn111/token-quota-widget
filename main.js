@@ -19,7 +19,7 @@ if (SHOT_MODE) {
 }
 
 const { isAllowedExtUrl } = require('./ext-guard.js');
-const { createStore } = require('./lib/store.js');
+const { createStore, mergeProviders } = require('./lib/store.js');
 const { createHub } = require('./providers/index.js');
 
 /* ---------------- 窗口几何常量（一切纠偏的唯一锚点） ---------------- */
@@ -33,6 +33,7 @@ let tray = null;
 let settings = null;
 let store = null;
 let hub = null;
+let lastSnap = null;   // 最近一帧快照（页面就绪后补发，防启动竞态丢帧）
 let dockExpanded = false;
 let dockTimer = null;
 let hoverArmed = true;
@@ -332,6 +333,9 @@ function createWindow() {
   win.once('ready-to-show', () => win.show());
   win.webContents.on('did-finish-load', () => {
     sendDockState();
+    /* 启动竞态防护：hub 首帧可能在页面就绪前已广播（send 丢失），
+       页面加载完成后补发最近一帧，避免界面长时间停在静态骨架 */
+    if (lastSnap) win.webContents.send('data:update', lastSnap);
     if (settings.docked) setShapePill();
   });
   if (startDocked) { hoverArmed = true; ensureHoverPoll(); }
@@ -361,6 +365,9 @@ function createWindow() {
       await js(`document.querySelector('#bottombar button[data-v="vLimits"]').click()`);
       await wait(400);
       await take('limits.png');
+      await js(`document.querySelector('#bottombar button[data-v="vSettings"]').click()`);
+      await wait(400);
+      await take('settings.png');
       await js(`document.querySelector('#bottombar button[data-v="vHome"]').click()`);
       await wait(300);
       dockWindow();                         // 吸顶态
@@ -379,18 +386,7 @@ function registerIpc() {
     if (!patch || typeof patch !== 'object') return store.publicView();
     /* providers 深合并：凭据字段是打码值时保留原值，绝不让 ••• 覆盖真实 Cookie/Key */
     if (Array.isArray(patch.providers)) {
-      const old = new Map((settings.providers || []).map(p => [p.id, p]));
-      patch.providers = patch.providers.map(p => {
-        const prev = old.get(p.id);
-        if (!prev) return p;
-        const merged = Object.assign({}, p);
-        for (const secret of ['cookie', 'apiKey', 'token']) {
-          if (!merged[secret] || /^•+$/.test(String(merged[secret]))) {
-            merged[secret] = prev[secret] || '';
-          }
-        }
-        return merged;
-      });
+      patch.providers = mergeProviders(settings.providers, patch.providers);
     }
     const next = {};
     for (const k of Object.keys(patch)) {
@@ -492,6 +488,7 @@ app.whenReady().then(() => {
   if (!fs.existsSync(app.getPath('userData'))) fs.mkdirSync(app.getPath('userData'), { recursive: true });
 
   hub = createHub(settings, snap => {
+    lastSnap = snap;
     if (win && !win.isDestroyed()) win.webContents.send('data:update', snap);
   });
   hub.start();

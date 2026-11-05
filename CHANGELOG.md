@@ -13,6 +13,7 @@ Windows 桌面 AI Token 额度仪表盘首个正式版本。
 
 ### 数据
 - MiMo Token Plan 双通道（`tp-` API Key 优先，控制台 Cookie 兜底），套餐标签按真实周期推断（年度 / 季度 / 本月 / 本周）
+- 数据源多条目管理：可添加多个账号 / 多个中转站，每条独立刷新；清单显示「已添加 N 个」，支持逐条编辑（凭据留空保持原值）与删除；类型下拉选择，UI 不预设任何厂商
 - 本地用量统计：Claude Code / Codex / WorkBuddy 会话日志 → 今日 / 本月 / 累计、成本估算、30 天活跃度热力图（本地日期键）、最近会话
 - 自定义端点（兼容 New API / One API 网关）、未配置时演示数据开箱可见、单厂商失败只雾化该卡
 
@@ -23,7 +24,7 @@ Windows 桌面 AI Token 额度仪表盘首个正式版本。
 - 本日 / 本周切换，GitHub Trending 优先、Search API 兜底，30 分钟缓存
 
 ### 质量与安全
-- 真实输入事件点击回归（`design/test-click.js`）、截图回归、`npm run selftest` 双模式实测
-- 拖拽 rAF 合帧跟手不掉帧；设置读取失败不阻塞界面；翻译 / 网络失败静默兜底
-- 凭据只存本机 `settings.json` 并打码回传；contextIsolation + 禁导航开窗；外链域名白名单
+- 真实输入事件点击回归（时段切换 + 设置页添加/编辑/删除/打码，共 14 项）、截图回归、`npm run selftest` 双模式实测
+- 拖拽 rAF 合帧跟手不掉帧；启动竞态防护（首帧快照在页面就绪后补发，界面不再长时间停在骨架屏）；设置读取失败不阻塞界面；翻译 / 网络失败静默兜底
+- 凭据（Cookie / API Key / Token）只存本机 `settings.json` 并一律打码回传；编辑时凭据留空 = 保持原值；contextIsolation + 禁导航开窗；外链域名白名单
 - 安装包产物名 ASCII `TokenQuotaWidget-Setup-x.y.z.exe`
