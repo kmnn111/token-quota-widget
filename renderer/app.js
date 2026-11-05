@@ -19,6 +19,22 @@ function fmtTokens(n) {
   if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
   return String(Math.round(n));
 }
+/* K/M/B 后缀旁标注中文单位（百万/千/十亿），照顾不熟悉英文缩写的用户 */
+function unitZh(n) {
+  if (n == null) return '';
+  if (n >= 1e9) return '十亿';
+  if (n >= 1e6) return '百万';
+  if (n >= 1e3) return '千';
+  return '';
+}
+function fmtTokensZh(n) {          // 纯文本：112.4M（百万）
+  const s = fmtTokens(n), u = unitZh(n);
+  return u ? s + '（' + u + '）' : s;
+}
+function fmtTokensHtml(n) {        // HTML：数字 + 小号灰字（百万）
+  const s = esc(fmtTokens(n)), u = unitZh(n);
+  return u ? s + '<i class="uz">（' + u + '）</i>' : s;
+}
 function shortCountdown(iso) {
   if (!iso) return '长期';
   const ms = new Date(iso).getTime() - Date.now();
@@ -59,7 +75,7 @@ function renderTotals() {
     return;
   }
   const v = range === 'day' ? u.day : range === 'month' ? u.month : u.total;
-  $('tNum').innerHTML = esc(fmtTokens(v)) + '<small> tokens</small>';
+  $('tNum').innerHTML = fmtTokensHtml(v) + '<small> tokens</small>';
   $('tCost').textContent = (range === 'day' ? u.costDay : range === 'month' ? u.costMonth : '') || '';
   const running = (u.sessions || []).filter(s => s.running).length;
   $('tMeta').textContent = (u.tools || []).length + ' 个工具' + (running ? ' · ' + running + ' 个会话运行中' : '');
@@ -91,7 +107,7 @@ function renderPin(provs) {
     return `<div class="ql"><span>${esc(x.label)}</span>
         <b class="${left != null && left < 25 ? 'hot' : ''}">${left != null ? '剩余 ' + left + '%' : '—'}</b></div>
       <div class="bar ${barClass(left)}"><i style="width:${left != null ? Math.max(0, 100 - left) : 0}%"></i></div>`;
-  }).join('') + `<div class="qfoot"><span>${w[0] && w[0].used != null ? fmtTokens(w[0].used) + ' / ' + fmtTokens(w[0].limit) : ''}</span>
+  }).join('') + `<div class="qfoot"><span>${w[0] && w[0].used != null ? fmtTokensHtml(w[0].used) + ' / ' + fmtTokensHtml(w[0].limit) : ''}</span>
       <span>${p.balance ? '按量余额 ' + p.balance.amount + ' ' + esc(p.balance.currency || '') : countdown(w[0] && w[0].resetAt)}</span></div>`;
 }
 
@@ -121,13 +137,13 @@ function renderTools() {
   const u = snap && snap.snapshot && snap.snapshot.usage;
   const tools = (u && u.tools || []).slice().sort((a, b) => b.tokens - a.tokens);
   $('toolList').innerHTML = tools.length ? tools.map(t => `
-    <div class="row"><span class="rk"><b>${esc(t.name)}</b></span><span class="rv"><b>${fmtTokens(t.tokens)}</b></span></div>`).join('')
+    <div class="row"><span class="rk"><b>${esc(t.name)}</b></span><span class="rv"><b>${fmtTokensHtml(t.tokens)}</b></span></div>`).join('')
     : '<div class="row"><span class="rk">暂无数据</span></div>';
   const sess = (u && u.sessions || []).slice(0, 6);
   $('sessMeta').textContent = sess.length ? (sess.filter(s => s.running).length || '') + ' 运行中' : '';
   $('sessList').innerHTML = sess.length ? sess.map(s => `
     <div class="row"><span class="rk">${s.running ? '<span class="dot" style="display:inline-block;margin-right:5px"></span>' : ''}<b>${esc(s.title)}</b></span>
-    <span class="rv">${fmtTokens(s.tokens)}</span></div>`).join('')
+    <span class="rv">${fmtTokensHtml(s.tokens)}</span></div>`).join('')
     : '<div class="row"><span class="rk">暂无会话记录</span></div>';
 }
 
@@ -155,7 +171,7 @@ function renderHeat() {
   const cells = days.map((v, i) => {
     const a = v > 0 ? 0.15 + 0.85 * (v / max) : 0.06;
     const fill = v > 0 ? `rgba(95,199,190,${a.toFixed(2)})` : 'rgba(255,255,255,.06)';
-    return `<rect x="${(i % 6) * 21}" y="${Math.floor(i / 6) * 17}" width="18" height="14" rx="4" fill="${fill}"><title>${fmtTokens(v)}</title></rect>`;
+    return `<rect x="${(i % 6) * 21}" y="${Math.floor(i / 6) * 17}" width="18" height="14" rx="4" fill="${fill}"><title>${fmtTokensZh(v)}</title></rect>`;
   }).join('');
   $('heat').innerHTML = `<svg viewBox="0 0 126 82" height="82">${cells}</svg>`;
   $('heatMeta').textContent = '近 30 天 · ' + active + ' 天活跃';
@@ -187,7 +203,7 @@ function renderLimits() {
       <div class="mh"><span style="color:${p.color}">${esc(p.name)}</span>
         <b>${p.status === 'ok' || p.status === 'demo' ? esc(p.plan || '') : p.status === 'expired' ? '登录态失效' : esc((p.error || p.status).slice(0, 26))}</b></div>
       ${(p.windows || []).map(w => `
-        <div class="ql"><span>${esc(w.label)}${w.used != null ? ' · ' + fmtTokens(w.used) + ' / ' + fmtTokens(w.limit) : ''}</span>
+        <div class="ql"><span>${esc(w.label)}${w.used != null ? ' · ' + fmtTokensHtml(w.used) + ' / ' + fmtTokensHtml(w.limit) : ''}</span>
         <b class="${w.leftPct != null && w.leftPct < 25 ? 'hot' : ''}">${w.leftPct != null ? '剩余 ' + w.leftPct + '%' : '—'}</b></div>
         <div class="bar ${barClass(w.leftPct)}" style="margin-bottom:7px"><i style="width:${w.leftPct != null ? 100 - w.leftPct : 0}%"></i></div>
         <div class="qfoot" style="margin:0 0 6px"><span>${esc(countdown(w.resetAt))}</span><span>${w.resetType === 'session' ? '会话窗' : w.resetType === 'weekly' ? '周窗' : w.resetType === 'period' ? '周期窗' : ''}</span></div>`).join('')}

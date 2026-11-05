@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>本月用量 · 月历概念图</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 900px; font-family: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif; color: #22344f;
+    background:
+      radial-gradient(420px 300px at 84% 4%, rgba(255, 214, 176, .5), transparent 70%),
+      radial-gradient(380px 320px at 6% 26%, rgba(190, 228, 220, .45), transparent 70%),
+      radial-gradient(460px 360px at 92% 66%, rgba(205, 222, 240, .4), transparent 70%),
+      radial-gradient(420px 340px at 10% 92%, rgba(255, 220, 186, .4), transparent 70%),
+      linear-gradient(160deg, #f6f2ea 0%, #eef1ec 45%, #e9edf2 78%, #ecedf0 100%);
+    padding: 30px 34px 34px;
+  }
+  header h1 { font-size: 21px; font-weight: 700; letter-spacing: .5px; }
+  header p { font-size: 12px; margin-top: 6px; opacity: .82; line-height: 1.7; }
+
+  /* ============ 应用窗口概念（420 宽，沿用额度窗暖玻璃） ============ */
+  .winwrap { margin: 22px 0 0 8px; }
+  .frame {
+    width: 420px; height: 372px; position: relative; overflow: hidden;
+    background: rgba(252, 250, 246, .82);
+    backdrop-filter: blur(24px) saturate(1.25); -webkit-backdrop-filter: blur(24px) saturate(1.25);
+    border: 1px solid rgba(46, 66, 100, .13); border-radius: 33px;
+    box-shadow: 0 24px 60px rgba(30, 50, 90, .18);
+  }
+  .topbar {
+    height: 50px; padding: 0 18px; display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid rgba(46, 66, 100, .13);
+  }
+  .logo { font-size: 15px; font-weight: 600; letter-spacing: .5px; }
+  .logo em { font-style: normal; color: #98a6c0; }
+  .seg { display: flex; gap: 2px; background: rgba(28, 42, 66, .045); border: 1px solid rgba(46, 66, 100, .13); border-radius: 12px; padding: 2px; }
+  .seg button { border: 0; background: none; color: #5b6e90; font-size: 10px; padding: 4px 10px; border-radius: 10px; font-family: inherit; letter-spacing: .05em; }
+  .seg button.on { background: rgba(255, 255, 255, .9); color: #22344f; box-shadow: 0 1px 3px rgba(30, 50, 90, .12); }
+  .state { margin-left: auto; font-size: 10.5px; color: #5b6e90; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #3b9c8e; box-shadow: 0 0 0 3px rgba(59, 156, 142, .18); }
+
+  .view { padding: 13px 18px 10px; }
+  .hero { display: flex; gap: 12px; align-items: flex-start; }
+
+  /* 左栏：本月 token 用量（维持现状） */
+  .hleft { width: 148px; flex: none; padding-top: 2px; }
+  .tlabel { font-size: 10px; letter-spacing: .18em; color: #98a6c0; text-transform: uppercase; }
+  .tnum { font-size: 31px; font-weight: 200; letter-spacing: -1px; line-height: 1.15; font-variant-numeric: tabular-nums; margin-top: 3px; }
+  .uz { font-style: normal; font-size: 10px; color: #98a6c0; letter-spacing: .02em; margin-left: 2px; font-weight: 400; }
+  .tcost { font-size: 11.5px; color: #5b6e90; margin-top: 2px; }
+  .tmeta { font-size: 10px; color: #98a6c0; margin-top: 3px; line-height: 1.55; }
+
+  /* 右栏：月历卡 */
+  .calcard {
+    width: 224px; flex: none; background: rgba(255, 255, 255, .55);
+    border: 1px solid rgba(46, 66, 100, .13); border-radius: 15px; padding: 10px 11px 9px;
+    position: relative;
+  }
+  .mh { display: flex; justify-content: space-between; align-items: baseline; font-size: 10.5px; margin-bottom: 7px; }
+  .mh span { font-weight: 600; letter-spacing: .05em; }
+  .mh .nav { font-weight: 400; font-size: 10px; color: #98a6c0; letter-spacing: .35em; }
+  .wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 3px; }
+  .wk i { font-style: normal; font-size: 8.5px; color: #98a6c0; text-align: center; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .d {
+    height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-variant-numeric: tabular-nums; color: #22344f; position: relative;
+  }
+  .d.future { color: #b9c4d8; background: rgba(46, 66, 100, .03); }
+  .d.zero   { color: #98a6c0; background: rgba(95, 199, 190, .07); }
+  .d.today  { box-shadow: 0 0 0 1.5px #3b9c8e; font-weight: 700; }
+  .d.hover  { background: rgba(255, 255, 255, .96); color: #22344f; font-weight: 700;
+              box-shadow: 0 3px 10px rgba(30, 50, 90, .22); transform: translateY(-1px); }
+  .calhint { font-size: 8.5px; color: #98a6c0; margin-top: 7px; letter-spacing: .02em; }
+
+  /* 悬停浮层 */
+  .tip {
+    position: absolute; left: 42px; top: 92px; width: 152px; z-index: 9;
+    background: rgba(255, 255, 255, .96); border: 1px solid rgba(46, 66, 100, .13);
+    border-radius: 11px; padding: 9px 11px 8px;
+    box-shadow: 0 12px 28px rgba(30, 50, 90, .2);
+  }
+  .tip::before {
+    content: ''; position: absolute; top: -5px; left: 36px; width: 9px; height: 9px;
+    background: rgba(255, 255, 255, .96); border-left: 1px solid rgba(46, 66, 100, .13);
+    border-top: 1px solid rgba(46, 66, 100, .13); transform: rotate(45deg); border-radius: 2px;
+  }
+  .tip .tt { font-size: 9px; color: #98a6c0; letter-spacing: .05em; }
+  .tip .tn { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 1px; letter-spacing: -.3px; }
+  .tip .tn small { font-size: 9.5px; color: #5b6e90; font-weight: 400; margin-left: 2px; letter-spacing: 0; }
+  .tip .tr { font-size: 9.5px; color: #5b6e90; margin-top: 2.5px; font-variant-numeric: tabular-nums; }
+  .tip .td { font-size: 9px; margin-top: 4px; color: #d98a1f; font-weight: 600; }
+
+  /* 下方卡片残影（示意页面继续） */
+  .card {
+    background: rgba(255, 255, 255, .55); border: 1px solid rgba(46, 66, 100, .13);
+    border-radius: 15px; padding: 10px 12px; margin-top: 10px;
+  }
+  .ql { display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #5b6e90; margin: 6px 0 3px; }
+  .ql b { color: #22344f; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .bar { height: 5px; border-radius: 3px; background: rgba(46, 66, 100, .1); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 62%; border-radius: 3px; background: linear-gradient(90deg, #38b2a1, #6fd8c8); }
+
+  h2 { font-size: 13.5px; margin: 26px 0 8px; font-weight: 700; opacity: .85; }
+  .notes { font-size: 11.5px; line-height: 1.95; opacity: .88; }
+  .notes li { margin-left: 18px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>本月用量 · 月历概念图</h1>
+    <p>在「本月 token 用量」右侧嵌入当月月历：每天按用量强度着色（沿用「活跃度」热力图同一 teal 色阶），悬停任意日期浮出当日详情。<br>
+    以下为首页首屏概念（420px 实宽），示例数据为 2026 年 11 月，悬停在 11 月 3 日展示浮层。</p>
+  </header>
+
+  <div class="winwrap">
+    <div class="frame">
+      <!-- 顶栏 -->
+      <div class="topbar">
+        <div class="logo">Σ<em>•</em> 额度窗</div>
+        <div class="seg"><button>今日</button><button class="on">本月</button><button>累计</button></div>
+        <div class="state"><span class="dot"></span><span>已连接</span></div>
+      </div>
+
+      <div class="view">
+        <!-- hero：左数字 + 右月历 -->
+        <div class="hero">
+          <div class="hleft">
+            <div class="tlabel">本月 Token 用量</div>
+            <div class="tnum">112.4M<i class="uz">（百万）</i></div>
+            <div class="tcost">估算成本 ¥140.30</div>
+            <div class="tmeta">5 个工具 · 2 个会话运行中</div>
+          </div>
+
+          <div class="calcard">
+            <div class="mh"><span>2026 年 11 月</span><span class="nav">‹ ›</span></div>
+            <div class="wk"><i>日</i><i>一</i><i>二</i><i>三</i><i>四</i><i>五</i><i>六</i></div>
+            <div class="grid">
+              <!-- 第 1 周：11/1–11/7 -->
+              <div class="d zero">1</div>
+              <div class="d" style="background:rgba(95,199,190,.64)">2</div>
+              <div class="d hover">3</div>
+              <div class="d" style="background:rgba(95,199,190,.54)">4</div>
+              <div class="d today" style="background:rgba(95,199,190,.74)">5</div>
+              <div class="d future">6</div>
+              <div class="d future">7</div>
+              <!-- 第 2 周 -->
+              <div class="d future">8</div><div class="d future">9</div><div class="d future">10</div>
+              <div class="d future">11</div><div class="d future">12</div><div class="d future">13</div>
+              <div class="d future">14</div>
+              <!-- 第 3 周 -->
+              <div class="d future">15</div><div class="d future">16</div><div class="d future">17</div>
+              <div class="d future">18</div><div class="d future">19</div><div class="d future">20</div>
+              <div class="d future">21</div>
+              <!-- 第 4 周 -->
+              <div class="d future">22</div><div class="d future">23</div><div class="d future">24</div>
+              <div class="d future">25</div><div class="d future">26</div><div class="d future">27</div>
+              <div class="d future">28</div>
+              <!-- 第 5 周 -->
+              <div class="d future">29</div><div class="d future">30</div>
+              <div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+            </div>
+            <div class="calhint">色深 = 当日用量 · 悬停看详情</div>
+
+            <!-- 悬停 11/3 的浮层 -->
+            <div class="tip">
+              <div class="tt">11 月 3 日 · 周二</div>
+              <div class="tn">41.2M<i class="uz">（百万）</i><small>tokens</small></div>
+              <div class="tr">估算成本 ¥51.43</div>
+              <div class="tr">8 个会话 · 5 个工具</div>
+              <div class="td">较前日 +74.6%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 下方卡片（示意首屏继续向下滚动） -->
+        <div class="card">
+          <div class="mh"><span>额度 · Claude Pro</span><b>个人版</b></div>
+          <div class="ql"><span>计费周期用量</span><b>62%</b></div>
+          <div class="bar"><i></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>交互说明</h2>
+  <ul class="notes">
+    <li>月历固定展示当月；<b>今天</b>描边高亮（11/5），未来日期置灰不可点，无用量日留空。</li>
+    <li>格子色深 = 当日 token 用量，与「活跃度」热力图同一 teal 色阶，数据来自 <code>usage.perDay</code>（本地 YMD）。</li>
+    <li>悬停任意日期 → 浮出当日详情：tokens、估算成本（¥）、会话/工具数、较前日变化；移开自动收起。</li>
+    <li>左侧数字随顶栏「今日 / 本月 / 累计」切换（不变），月历始终跟随「本月」语义； ‹ › 可翻月看历史。</li>
+  </ul>
+</body>
+</html>

@@ -82,6 +82,10 @@ body.dark .seg button.on { background: rgba(255, 255, 255, .14); box-shadow: non
 .tcost { font-size: 11.5px; color: var(--ink2); margin-top: 2px; }
 .tmeta { font-size: 10px; color: var(--ink3); margin-top: 3px; }
 
+/* K/M/B 后缀的中文单位标注（百万/千/十亿），照顾不熟悉英文缩写的用户 */
+.uz { font-style: normal; font-size: 8.5px; color: var(--ink3); letter-spacing: .02em; margin-left: 1px; font-weight: 400; }
+.tnum .uz { font-size: 11px; margin-left: 2px; }
+
 /* 卡片通用 */
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 15px; padding: 10px 12px; margin-top: 10px; }
 .mh { display: flex; justify-content: space-between; align-items: baseline; font-size: 10.5px; margin-bottom: 8px; }
