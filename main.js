@@ -14,8 +14,10 @@ const path = require('path');
 const fs = require('fs');
 
 const SHOT_MODE = process.argv.includes('--shot') || process.argv.includes('--shot-dock');
-if (SHOT_MODE) {
-  try { app.setPath('userData', app.getPath('userData') + '-shot'); } catch (e) { }
+const HOVER_TEST = process.argv.includes('--hover-test');
+if (SHOT_MODE || HOVER_TEST) {
+  /* 自检/截图用独立 userData，避免 dockWindow() 写脏用户真实的吸顶配置 */
+  try { app.setPath('userData', app.getPath('userData') + (SHOT_MODE ? '-shot' : '-hovertest')); } catch (e) { }
 }
 
 const { isAllowedExtUrl } = require('./ext-guard.js');
@@ -38,6 +40,7 @@ let dockExpanded = false;
 let dockTimer = null;
 let hoverArmed = true;
 let hoverPoll = null;
+let domHover = null;   // 渲染层上报的鼠标状态；非 null 表示 DOM 事件可用，坐标轮询让位
 let programmatic = 0;
 let baseSize = { w: DESIGN_W, h: DESIGN_H };
 let refreshTrayMenu = () => { };   // 托盘菜单复建（设置变更后同步 checkbox）
@@ -136,11 +139,17 @@ function applyTopmost() {
 function sendDockState() {
   if (win && !win.isDestroyed()) win.webContents.send('dock:state', { docked: !!settings.docked, expanded: dockExpanded });
 }
-function handleDockHover(inside) {
-  if (!win || win.isDestroyed() || !settings.docked || settings.edgeDock === false) return;
+/* 悬停展开主要由渲染层 DOM 事件驱动（mouseenter/mouseleave），不依赖屏幕坐标：
+   坐标轮询在高 DPI 缩放 / 多显示器下 getCursorScreenPoint 与 getBounds 口径可能不一致，
+   是「滑过小窗不展开」的历史根因；现仅作页面未上报事件时的向后兼容兜底。
+   另外 edgeDock 只控制「拖到屏幕顶部自动吸附」，不该禁用已吸顶小窗的悬停展开。 */
+function handleDockHover(inside, fromDom) {
+  if (!win || win.isDestroyed() || !settings.docked) return;
   if (SHOT_MODE) return;
   if (inside) {
     if (dockTimer) { clearTimeout(dockTimer); dockTimer = null; }
+    /* 真实 mouseenter = 用户明确把鼠标移到小窗上，直接武装，不必先移出一次 */
+    if (fromDom) hoverArmed = true;
     if (hoverArmed && !dockExpanded) expandDock();
   } else {
     hoverArmed = true;
@@ -152,17 +161,24 @@ function handleDockHover(inside) {
     }
   }
 }
+function onDomDockHover(inside) {
+  domHover = !!inside;
+  /* DOM 通道已接管：停掉坐标轮询，避免两套判定互相打架造成展开/收起抖动。
+     注意只清 interval，不清 dockTimer（收起延时还要用）。 */
+  if (hoverPoll) { clearInterval(hoverPoll); hoverPoll = null; }
+  handleDockHover(!!inside, true);
+}
 function ensureHoverPoll() {
-  if (hoverPoll) return;
+  if (hoverPoll || domHover !== null) return;   // DOM 事件可用时不再启动坐标轮询
   hoverPoll = setInterval(() => {
-    if (!win || win.isDestroyed() || !settings.docked || settings.edgeDock === false) return;
+    if (!win || win.isDestroyed() || !settings.docked) return;
     if (!win.isVisible()) return;
     const b = win.getBounds();
     const p = screen.getCursorScreenPoint();
     const z = dockExpanded ? b : (r => ({ x: b.x + r.x, y: b.y + r.y, width: r.width, height: r.height }))(pillShapeRect()[0]);
     const inZone = p.x >= z.x && p.x <= z.x + z.width && p.y >= z.y && p.y <= z.y + z.height;
     if (!dockExpanded && inZone && p.x < z.x + 46) return; // 左侧抓手只用于拖拽
-    handleDockHover(inZone);
+    handleDockHover(inZone, false);
   }, 260);
 }
 function stopHoverPoll() {
@@ -344,9 +360,15 @@ function createWindow() {
     /* 启动竞态防护：hub 首帧可能在页面就绪前已广播（send 丢失），
        页面加载完成后补发最近一帧，避免界面长时间停在静态骨架 */
     if (lastSnap) win.webContents.send('data:update', lastSnap);
-    if (settings.docked) setShapePill();
+    /* 页面重载后 DOM 通道尚未上报，重置标记让坐标轮询先顶上 */
+    domHover = null;
+    if (settings.docked) {
+      setShapePill();
+      if (!SHOT_MODE) { hoverArmed = true; ensureHoverPoll(); }
+    }
   });
-  if (startDocked) { hoverArmed = true; ensureHoverPoll(); }
+  /* 只要处于吸顶态就启用悬停检测，不再依赖 startDocked（曾被 edgeDock 短路导致完全不检测） */
+  if (settings.docked && !SHOT_MODE) { hoverArmed = true; ensureHoverPoll(); }
   if (!SHOT_MODE && !startDocked) setTimeout(checkSnap, 1200);
   win.on('moved', () => { /* 拖拽结束（moved 在拖放时触发） */ checkSnap(); });
 
@@ -466,7 +488,7 @@ function registerIpc() {
   ipcMain.on('win:drag-end', () => { stopDragWatch(); checkSnap(); });
   ipcMain.on('win:drag-start', () => { if (dockExpanded) { dockExpanded = false; sendDockState(); } });
 
-  ipcMain.on('dock:hover', (_e, inside) => handleDockHover(!!inside));
+  ipcMain.on('dock:hover', (_e, inside) => onDomDockHover(!!inside));
 
   ipcMain.on('win:action', (_e, act) => {
     if (act === 'quit') { tray = null; app.quit(); }
@@ -542,6 +564,50 @@ function runSelfTest() {
     settings.alwaysOnTop = true;
     applyTopmost();
     console.log('[selftest] 汇总:', results.every(x => x) ? 'ALL PASS' : 'HAS FAIL');
+    app.exit(0);
+  })();
+}
+
+/* ---------------- 吸顶悬停展开自检（--hover-test） ----------------
+   用真实 DOM 事件走 renderer → preload → IPC → 主进程全链路，
+   覆盖「滑入展开 / 移开收起 / 可重复 / 关掉顶部吸附后仍可用」。 */
+function runHoverTest() {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const js = code => win.webContents.executeJavaScript(code).catch(() => null);
+  const fire = type => js(`document.getElementById('frame').dispatchEvent(new MouseEvent('${type}', { bubbles: false, relatedTarget: null }))`);
+  const results = [];
+  const check = (label, ok, extra) => {
+    console.log(`[hover-test] ${label}: ${ok ? 'PASS' : 'FAIL'}${extra ? ' ' + extra : ''}`);
+    results.push(ok);
+  };
+  (async () => {
+    dockWindow();
+    await sleep(500);
+    const domChannel = await js(`document.getElementById('frame').classList.contains('docked')`);
+    check('吸顶态 + 渲染层已就位', domChannel === true, 'docked=' + domChannel);
+    check('初始为小窗', dockExpanded === false);
+
+    await fire('mouseenter');
+    await sleep(350);
+    check('滑过小窗变大窗', dockExpanded === true);
+
+    await fire('mouseleave');
+    await sleep(900);
+    check('移开恢复小窗', dockExpanded === false);
+
+    await fire('mouseenter');
+    await sleep(350);
+    check('再次滑入可重复展开', dockExpanded === true);
+
+    /* 回归点：edgeDock（拖到顶部自动吸附开关）曾把悬停检测一刀切短路 */
+    settings.edgeDock = false;
+    await fire('mouseleave');
+    await sleep(900);
+    await fire('mouseenter');
+    await sleep(350);
+    check('顶部吸附关闭后悬停仍生效', dockExpanded === true);
+
+    console.log('[hover-test] 汇总:', results.every(Boolean) ? 'ALL PASS' : 'HAS FAIL');
     app.exit(0);
   })();
 }
@@ -824,6 +890,7 @@ app.whenReady().then(() => {
     try { app.setPath('userData', app.getPath('userData') + '-selftest'); } catch (e) { }
     setTimeout(runSelfTest, 2500);
   }
+  if (HOVER_TEST) setTimeout(runHoverTest, 1800);
 
   app.on('window-all-closed', () => { /* 常驻托盘，不退出 */ });
 });

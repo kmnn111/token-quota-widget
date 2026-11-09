@@ -24,5 +24,5 @@ contextBridge.exposeInMainWorld('quota', {
   updateInstall: () => ipcRenderer.invoke('update:install'),
   getUpdateState: () => ipcRenderer.invoke('update:state'),
   onUpdateState: (cb) => ipcRenderer.on('update:state', (_e, s) => cb && cb(s)),
-  version: '1.2.0'
+  version: '1.2.1'
 });

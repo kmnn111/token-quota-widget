@@ -586,6 +586,20 @@ $('pill').addEventListener('mouseenter', () => { pillHovered = true; });
 $('pill').addEventListener('mouseleave', () => { pillHovered = false; });
 $('pill').addEventListener('dblclick', () => window.quota.winAction('dock'));
 
+/* ---------------- 吸顶悬停展开 / 移开收起 ----------------
+   由 DOM 事件驱动而非主进程屏幕坐标轮询：高 DPI 缩放 / 多显示器下坐标口径易错位。
+   frame 在 docked 态被 clip-path 裁成胶囊，命中测试与窗口 region 一致；
+   展开后 clip-path 放开到整窗，鼠标在窗内移动不会触发 mouseleave。 */
+function reportDockHover(inside) {
+  if (!frame.classList.contains('docked')) return;   // 大窗态不参与悬停切换
+  window.quota.dockHover(inside);
+}
+frame.addEventListener('mouseenter', () => reportDockHover(true));
+frame.addEventListener('mouseleave', e => {
+  if (e.relatedTarget && frame.contains(e.relatedTarget)) return;  // 内部元素切换不算移出
+  reportDockHover(false);
+});
+
 /* ---------------- 数据源管理：多条目清单 + 添加 / 编辑 / 删除 ---------------- */
 function saveProviders(next) {
   /* 保存中锁：连点「添加 / 删除」不再基于同一份旧列表并发覆盖 */

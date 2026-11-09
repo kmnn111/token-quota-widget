@@ -1,5 +1,22 @@
 # 更新日志
 
+## 1.2.1 · 修复吸顶小窗悬停展开失灵 — 2026-11-09
+
+### 根因
+- 悬停展开原先**只**依赖主进程每 260ms 轮询 `screen.getCursorScreenPoint()` 与窗口 bounds 的坐标比对；高 DPI 缩放 / 多显示器下两者口径可能不一致，判定为「光标不在胶囊内」就永远不展开
+- `handleDockHover` / `ensureHoverPoll` 开头都用 `settings.edgeDock === false` 一刀切短路——`edgeDock` 语义只是「拖到屏幕顶部自动吸附」，却被误当成「禁用悬停展开」；一旦关闭该开关，检测彻底不跑
+- 启动时只有在 `startDocked` 为真才启动轮询，持久化 `docked=true` 但 `edgeDock=false` 时会出现「小窗形状还在、检测没启动」的死状态
+- 渲染层 `dock:hover` IPC 通道（`preload.dockHover`）与主进程 handler 一直存在，却从未接线，等于备用的可靠路径没用上
+
+### 修复
+- 渲染层在 `#frame`（docked 态被 clip-path 裁成胶囊，命中区域与窗口 region 一致）绑定 `mouseenter/mouseleave`，直接上报 `dock:hover`；DOM 事件不受屏幕坐标/DPI 影响
+- 主进程新增 `onDomDockHover`：收到首个 DOM 事件即停用坐标轮询，两套判定不再互相打架抖动；真实 `mouseenter` 直接武装 `hoverArmed`，不必先移出一次再滑入
+- 坐标轮询降级为「页面未上报 DOM 事件」时的向后兼容兜底；`edgeDock` 不再短路悬停检测；只要 `settings.docked` 为真就启用检测，`did-finish-load` 重载后重置 DOM 标记并补启兜底
+- 新增 `--hover-test` 全链路自检（独立 userData，不污染真实配置）：吸顶态 → 滑入展开 → 移开收起 → 再次滑入 → 关掉顶部吸附仍生效
+
+### 回归
+13 文件语法检查、v1.2 专项 18 项、设置 11 项、点击 3 项、Win+D 保活两种模式、六视图截图、`--hover-test` 6 项，全部 PASS。
+
 ## 1.2.0 · 细节打磨 + 近 7 日趋势 / 导出 / 预警 — 2026-11-09
 
 ### 新功能
