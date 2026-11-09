@@ -119,7 +119,11 @@ async function realSnapshot(settings) {
 /* ---------- 调度 ---------- */
 function createHub(settings, onSnapshot) {
   let timer = null;
+  let trendingTimer = null;
   let busy = false;
+  let paused = false;      // 窗口隐藏时暂停网络轮询，显示时立即补一次
+  let pausedAt = 0;
+  let stopped = false;
   let last = null;
   let lastTrending = null;
 
@@ -149,16 +153,52 @@ function createHub(settings, onSnapshot) {
     broadcast();
   }
 
+  /* 递归 setTimeout 而非 setInterval：每轮重新读取 refreshMinutes，
+     设置页改「刷新间隔」立刻生效，不必重启应用；同时天然防止上一轮未结束时堆叠请求。 */
+  function scheduleTick(ms) {
+    if (timer) clearTimeout(timer);
+    if (stopped) return;
+    timer = setTimeout(async () => {
+      timer = null;
+      if (!paused) await tick();
+      scheduleTick(clampMinutes(settings.refreshMinutes) * 60 * 1000);
+    }, ms);
+  }
+  function clampMinutes(v) {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(1440, Math.max(1, Math.round(n))) : 5;
+  }
+
   return {
     start() {
+      stopped = false;
       tick(); tickTrending();
-      if (timer) clearInterval(timer);
-      timer = setInterval(tick, Math.max(1, settings.refreshMinutes || 5) * 60 * 1000);
-      setInterval(tickTrending, 30 * 60 * 1000);
+      scheduleTick(clampMinutes(settings.refreshMinutes) * 60 * 1000);
+      if (trendingTimer) clearInterval(trendingTimer);
+      trendingTimer = setInterval(() => { if (!paused) tickTrending(); }, 30 * 60 * 1000);
     },
-    stop() { if (timer) clearInterval(timer); },
+    stop() {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+      if (trendingTimer) clearInterval(trendingTimer);
+      timer = null; trendingTimer = null;
+    },
+    /* 窗口 hide/show：隐藏时停掉网络请求，回来立刻补一帧，避免长时间空转 */
+    setPaused(v) {
+      const next = !!v;
+      if (next === paused) return;
+      paused = next;
+      if (paused) { pausedAt = Date.now(); return; }
+      /* 只有真正长时间隐藏才补一帧：Win+D 保活会反复 showInactive，不能每次都打网络 */
+      if (!stopped && Date.now() - pausedAt > 60000) {
+        if (timer) clearTimeout(timer); timer = null;
+        tick();
+        scheduleTick(clampMinutes(settings.refreshMinutes) * 60 * 1000);
+      }
+    },
     refreshNow: tick,
-    refreshTrending: tickTrending
+    refreshTrending: tickTrending,
+    last() { return last; }
   };
 }
 

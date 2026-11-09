@@ -1,7 +1,7 @@
 {
   "name": "token-quota-widget",
   "productName": "额度窗",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "额度窗 — Windows 桌面 AI Token 额度仪表盘：无边框透明玻璃、大窗/吸顶小窗、MiMo Token Plan 与多厂商额度聚合、全中文界面",
   "main": "main.js",
   "author": "kmnn111",

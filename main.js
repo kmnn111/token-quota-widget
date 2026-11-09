@@ -9,7 +9,7 @@
  *  ③ 置顶关着（桌面部件语义）：koffi 每 100ms 把小窗钉在壁纸层 WorkerW 正上方 ——
  *     Win+D 壁纸跃升时小窗跟着浮上来，全程不压任何程序窗口。
  */
-const { app, BrowserWindow, ipcMain, Tray, Menu, screen, shell, nativeImage, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, screen, shell, nativeImage, Notification, nativeTheme, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -19,7 +19,7 @@ if (SHOT_MODE) {
 }
 
 const { isAllowedExtUrl } = require('./ext-guard.js');
-const { createStore, mergeProviders } = require('./lib/store.js');
+const { createStore, mergeProviders, PUBLIC_KEYS } = require('./lib/store.js');
 const { createHub } = require('./providers/index.js');
 
 /* ---------------- 窗口几何常量（一切纠偏的唯一锚点） ---------------- */
@@ -40,6 +40,8 @@ let hoverArmed = true;
 let hoverPoll = null;
 let programmatic = 0;
 let baseSize = { w: DESIGN_W, h: DESIGN_H };
+let refreshTrayMenu = () => { };   // 托盘菜单复建（设置变更后同步 checkbox）
+let quotaAlertLog = null;          // 额度预警去重（落盘）：同一源同一额度窗同一天只提醒一次
 
 /* ---------------- 形状 / bounds ---------------- */
 function setBoundsSafe(r) {
@@ -101,6 +103,7 @@ function glueWallpaper() {
 }
 function glueTick() {
   const A = glueInit(); if (!A || !win || win.isDestroyed()) return;
+  if (!win.isVisible() || win.isMinimized()) return;   // 隐藏时不做 100ms 窗口层扫描，省 CPU
   const W = glueWallpaper(); if (!W) return;
   const wallUp = A.isVisible(W);
   if (!wallUp && (win.isFocused() || dockExpanded)) return; // 常态放行交互置前
@@ -256,6 +259,7 @@ function buildTray() {
     tray.setToolTip('额度窗 · ' + (settings.docked ? '吸顶小窗' : '仪表盘'));
   };
   rebuild();
+  refreshTrayMenu = rebuild;   // 设置页/托盘任一入口改动后，另一处 checkbox 同步刷新
   tray.on('double-click', () => (settings.docked ? undockWindow() : (win && win.isVisible() ? win.focus() : win && win.show())));
   return { rebuild };
 }
@@ -264,7 +268,8 @@ function buildTray() {
 function createWindow() {
   const wa = screen.getPrimaryDisplay().workArea;
   let x, y;
-  const startDocked = !!settings.docked && settings.edgeDock !== false;
+  /* 截图模式忽略持久化的吸顶态：否则上一轮结尾的 dockWindow() 会污染下一轮首图 */
+  const startDocked = !SHOT_MODE && !!settings.docked && settings.edgeDock !== false;
   if (startDocked) {
     const px = Number.isFinite(settings.dockX) ? settings.dockX : wa.x + wa.width - PILL_W - 36;
     x = clamp(px - Math.round((baseSize.w - PILL_W) / 2), wa.x, wa.x + wa.width - baseSize.w);
@@ -326,13 +331,16 @@ function createWindow() {
     setTimeout(undoMinimize, 40);
     setTimeout(undoMinimize, 250);
   });
-  win.on('closed', () => setGlue(false));
+  win.on('closed', () => { setGlue(false); if (hub) hub.stop(); });
+  win.on('hide', () => { if (hub) hub.setPaused(true); });
+  win.on('show', () => { if (hub) hub.setPaused(false); });
 
   if (SHOT_MODE) { try { win.webContents.session.clearCache().catch(() => { }); } catch (e) { } }
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   win.once('ready-to-show', () => win.show());
   win.webContents.on('did-finish-load', () => {
     sendDockState();
+    if (settings.theme === 'system') pushSystemTheme();
     /* 启动竞态防护：hub 首帧可能在页面就绪前已广播（send 丢失），
        页面加载完成后补发最近一帧，避免界面长时间停在静态骨架 */
     if (lastSnap) win.webContents.send('data:update', lastSnap);
@@ -368,6 +376,9 @@ function createWindow() {
       await js(`document.querySelector('#bottombar button[data-v="vSettings"]').click()`);
       await wait(400);
       await take('settings.png');
+      await js(`document.getElementById('btnExportCsv').scrollIntoView({ block: 'center' })`);  // 数据与提醒卡
+      await wait(300);
+      await take('settings-data.png');
       await js(`document.querySelector('#vSettings').scrollTop = 9999`);   // 滚到底：软件更新卡
       await wait(300);
       await take('settings-update.png');
@@ -387,25 +398,47 @@ function registerIpc() {
 
   ipcMain.handle('settings:update', (_e, patch) => {
     if (!patch || typeof patch !== 'object') return store.publicView();
-    /* providers 深合并：凭据字段是打码值时保留原值，绝不让 ••• 覆盖真实 Cookie/Key */
-    if (Array.isArray(patch.providers)) {
-      patch.providers = mergeProviders(settings.providers, patch.providers);
-    }
+    /* 白名单而非黑名单：杜绝 __proto__ 之类任意键注入 settings / 原型污染 */
     const next = {};
     for (const k of Object.keys(patch)) {
-      if (['docked', 'dockX', 'winPos', 'edgeDock', 'updSha512'].includes(k)) continue; // 几何态与更新消费标记只由主进程写
+      if (!PUBLIC_KEYS.has(k)) continue;
+      if (k === 'providers') continue;   // 单独深合并
       next[k] = patch[k];
     }
+    /* providers 深合并：凭据字段是打码值时保留原值，绝不让 ••• 覆盖真实 Cookie/Key */
+    if (Array.isArray(patch.providers)) {
+      next.providers = mergeProviders(settings.providers, patch.providers).slice(0, 30);
+      /* 自定义端点只收 HTTP(S)，限长防误填整段文本 */
+      next.providers = next.providers.map(p => {
+        const q = Object.assign({}, p);
+        if (q.url != null) { q.url = String(q.url).trim().slice(0, 500); if (q.url && !/^https?:\/\/[^\s]+$/i.test(q.url)) q.url = ''; }
+        if (q.name != null) q.name = String(q.name).slice(0, 60);
+        if (q.map != null && typeof q.map === 'object') {
+          for (const mk of Object.keys(q.map)) q.map[mk] = String(q.map[mk]).slice(0, 120);
+        }
+        return q;
+      });
+    }
+    /* 数值钳制：负数 / 超大值会让定时器疯转或永不刷新 */
+    const clampNum = (v, lo, hi, fb) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n))) : fb; };
+    if ('refreshMinutes' in next) next.refreshMinutes = clampNum(next.refreshMinutes, 1, 1440, 5);
+    if ('rotateSeconds' in next) next.rotateSeconds = clampNum(next.rotateSeconds, 3, 60, 5);
+    if ('quotaAlertPct' in next) next.quotaAlertPct = clampNum(next.quotaAlertPct, 1, 50, 10);
+    if ('quotaAlert' in next) next.quotaAlert = !!next.quotaAlert;
+    if ('alwaysOnTop' in next) next.alwaysOnTop = !!next.alwaysOnTop;
+    if ('theme' in next) next.theme = ['light', 'dark', 'system'].includes(String(next.theme)) ? String(next.theme) : 'light';
+    if ('trendingRange' in next) next.trendingRange = String(next.trendingRange) === 'weekly' ? 'weekly' : 'daily';
     /* 更新源白名单校验：只收 HTTP(S)，防止 updateUrl 被劫持到恶意更新源 */
     if ('updateUrl' in next) {
-      const u = String(next.updateUrl || '').trim();
+      const u = String(next.updateUrl || '').trim().slice(0, 300);
       if (u && !/^https?:\/\/[^\s]+$/i.test(u)) return store.publicView();
       next.updateUrl = u.replace(/\/+$/, '');
     }
     Object.assign(settings, next);
     store.setInternal(next);
-    if ('alwaysOnTop' in next) applyTopmost();   // 设置页「窗口置顶」即时生效
-    if (patch.trendingRange && hub) hub.refreshTrending();
+    if ('alwaysOnTop' in next || 'edgeDock' in next) { applyTopmost(); refreshTrayMenu(); }
+    if ('theme' in next && next.theme === 'system') pushSystemTheme();
+    if ('trendingRange' in next && hub) hub.refreshTrending();
     return store.publicView();
   });
 
@@ -449,6 +482,23 @@ function registerIpc() {
   });
 
   ipcMain.handle('data:refresh', () => hub && hub.refreshNow());
+
+  /* 导出当月逐日用量 CSV（用户选路径，写入前生成内容，取消不落盘） */
+  ipcMain.handle('data:export', async () => {
+    try {
+      const csv = buildUsageCsv(lastSnap);
+      if (!csv) return { ok: false, message: '暂无本机用量数据可导出' };
+      const now = new Date();
+      const def = `额度窗用量_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}.csv`;
+      const r = await dialog.showSaveDialog(win, {
+        title: '导出当月用量', defaultPath: path.join(app.getPath('documents') || app.getPath('home'), def),
+        filters: [{ name: 'CSV 表格', extensions: ['csv'] }]
+      });
+      if (r.canceled || !r.filePath) return { ok: false, canceled: true };
+      fs.writeFileSync(r.filePath, csv, 'utf8');
+      return { ok: true, path: r.filePath, rows: csv.trim().split('\r\n').length - 1 };
+    } catch (e) { return { ok: false, message: String(e && e.message || e).slice(0, 120) }; }
+  });
 
   /* OTA 在线更新 */
   ipcMain.handle('update:check', () => { checkForUpdates(true); return true; });
@@ -540,6 +590,58 @@ function pushNotify(title, body) {
     });
     n.show();
   } catch (e) { otaLog('notify failed', String(e)); }
+}
+
+/* 跟随系统主题：把系统深浅色推给渲染层（仅当设置里选了「跟随系统」时才应用） */
+function pushSystemTheme() {
+  if (!win || win.isDestroyed()) return;
+  win.webContents.send('theme:system', { dark: nativeTheme.shouldUseDarkColors });
+}
+nativeTheme.on('updated', pushSystemTheme);
+
+/* 额度临界预警：某真实数据源剩余跌破阈值时推一次系统通知。
+   去重键 = 源 + 额度窗 + 当天 + 阈值档，避免每 5 分钟轮询反复轰炸；演示数据不提醒。 */
+function checkQuotaAlerts(snap) {
+  if (SHOT_MODE || settings.quotaAlert === false || !snap || !snap.snapshot) return;
+  const pct = Math.min(50, Math.max(1, Number(settings.quotaAlertPct) || 10));
+  const today = new Date().toISOString().slice(0, 10);
+  if (!quotaAlertLog) {
+    quotaAlertLog = (settings.quotaAlertLog && typeof settings.quotaAlertLog === 'object') ? settings.quotaAlertLog : {};
+    /* 只留当天记录，文件不随时间膨胀 */
+    for (const k of Object.keys(quotaAlertLog)) if (quotaAlertLog[k] !== today) delete quotaAlertLog[k];
+  }
+  let changed = false;
+  for (const p of (snap.snapshot.providers || [])) {
+    if (!p || p.source === 'demo' || p.status === 'error' || p.status === 'expired') continue;
+    for (const w of (p.windows || [])) {
+      if (w.leftPct == null || w.leftPct > pct) continue;
+      const key = [p.id || p.name, w.label, today, pct].join('|');
+      if (quotaAlertLog[key]) continue;
+      quotaAlertLog[key] = today; changed = true;
+      pushNotify('额度告急 · ' + (p.name || '数据源'),
+        (w.label || '额度') + ' 仅剩 ' + w.leftPct + '%' + (w.resetAt ? '，' + new Date(w.resetAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' 重置' : ''));
+    }
+  }
+  if (changed) { try { store.setInternal({ quotaAlertLog }); } catch (e) { } }
+}
+
+/* 当月逐日用量 CSV：Excel 直接双击不乱码（BOM + CRLF + 中文表头） */
+function buildUsageCsv(snap) {
+  const u = snap && snap.snapshot && snap.snapshot.usage;
+  if (!u) return null;
+  const perDay = u.perDay || {}, info = u.perDayInfo || {};
+  const now = new Date(), y = now.getFullYear(), mo = now.getMonth();
+  const dim = new Date(y, mo + 1, 0).getDate();
+  const pad = n => String(n).padStart(2, '0');
+  const rate = u.month > 0 ? (parseFloat(String(u.costMonth || '').replace(/[,¥\s]/g, '')) || 0) / u.month : 0;
+  const rows = [['日期', 'Tokens', '估算成本(元)', '会话数', '工具数'].join(',')];
+  for (let d = 1; d <= dim; d++) {
+    const k = y + '-' + pad(mo + 1) + '-' + pad(d);
+    const v = perDay[k] || 0;
+    const i = info[k] || {};
+    rows.push([k, v, rate > 0 ? (v * rate).toFixed(2) : '', i.sessions || 0, i.tools || 0].join(','));
+  }
+  return '\ufeff' + rows.join('\r\n') + '\r\n';
 }
 
 function sendUpdateState(s) {
@@ -708,6 +810,7 @@ app.whenReady().then(() => {
   hub = createHub(settings, snap => {
     lastSnap = snap;
     if (win && !win.isDestroyed()) win.webContents.send('data:update', snap);
+    checkQuotaAlerts(snap);
   });
   hub.start();
 

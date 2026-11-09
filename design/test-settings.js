@@ -29,7 +29,13 @@ app.whenReady().then(async () => {
     return store.publicView();
   });
   ipcMain.handle('data:refresh', () => { });
+  ipcMain.handle('data:export', () => ({ ok: false, canceled: true }));
   ipcMain.handle('ext:open', () => true);
+  /* OTA / 主题相关通道补齐 mock：避免「No handler registered」噪声 */
+  ipcMain.handle('update:state', () => ({ type: 'idle' }));
+  ipcMain.handle('update:check', () => true);
+  ipcMain.handle('update:download', () => true);
+  ipcMain.handle('update:install', () => true);
 
   const win = new BrowserWindow({
     width: 420, height: 840, frame: false, transparent: true, show: false,

@@ -14,11 +14,15 @@ contextBridge.exposeInMainWorld('quota', {
   winDragEnd: () => ipcRenderer.send('win:drag-end'),
   winAction: (act) => ipcRenderer.send('win:action', act),
   openExternal: (url) => ipcRenderer.invoke('ext:open', url),
+  /* 当月用量 CSV 导出 */
+  exportCsv: () => ipcRenderer.invoke('data:export'),
+  /* 跟随系统主题 */
+  onSystemTheme: (cb) => ipcRenderer.on('theme:system', (_e, s) => cb && cb(s)),
   /* OTA 在线更新 */
   updateCheck: () => ipcRenderer.invoke('update:check'),
   updateDownload: () => ipcRenderer.invoke('update:download'),
   updateInstall: () => ipcRenderer.invoke('update:install'),
   getUpdateState: () => ipcRenderer.invoke('update:state'),
   onUpdateState: (cb) => ipcRenderer.on('update:state', (_e, s) => cb && cb(s)),
-  version: '1.1.0'
+  version: '1.2.0'
 });

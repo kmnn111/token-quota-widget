@@ -28,6 +28,7 @@
           <div class="tnum" id="tNum">—</div>
           <div class="tcost" id="tCost"></div>
           <div class="tmeta" id="tMeta"></div>
+          <div class="minitrend" id="miniTrend"></div>
         </div>
         <!-- 当月用量月历：格子色深 = 当日用量，悬停看当日详情 -->
         <div class="calcard" id="calCard">
@@ -36,8 +37,9 @@
           </div>
           <div class="wk"><i>日</i><i>一</i><i>二</i><i>三</i><i>四</i><i>五</i><i>六</i></div>
           <div class="grid" id="calGrid"></div>
-          <div class="calhint">色深 = 当日用量 · 悬停看详情</div>
-          <div class="cal-tip" id="calTip" hidden></div>
+          <div class="calhint" id="calSum">本月 —</div>
+          <div class="calhint calhint2" id="calHint">色深 = 当日用量 · 悬停查看 · 点击固定</div>
+          <div class="cal-tip" id="calTip"></div>
         </div>
       </div>
 
@@ -111,21 +113,21 @@
 
         <div id="frmMimo">
           <label>Token Plan API Key（推荐 · tp- 开头 · 官方接口）</label>
-          <input id="inMimoKey" type="password" placeholder="tp-xxxxxxxx" autocomplete="off">
+          <input id="inMimoKey" type="password" placeholder="tp-xxxxxxxx" autocomplete="off" maxlength="200">
           <label>控制台 Cookie（可选 · 能看明细与余额 · 约 24h 失效）</label>
-          <textarea id="inMimoCookie" placeholder="api-platform_serviceToken=…; userId=…"></textarea>
+          <textarea id="inMimoCookie" placeholder="api-platform_serviceToken=…; userId=…" maxlength="4000"></textarea>
           <div class="hint">Cookie 获取：浏览器登录 <code>platform.xiaomimimo.com</code> → F12 → Network → 任一 <code>/api/v1</code> 请求 → 复制完整 Cookie 请求头。可同时填 Key + Cookie（Cookie 补明细），至少填一项。</div>
         </div>
 
         <div id="frmCustom">
           <label>名称</label>
-          <input id="inCustomName" type="text" placeholder="中转站 / 自建网关">
+          <input id="inCustomName" type="text" placeholder="中转站 / 自建网关" maxlength="60">
           <label>额度 JSON 地址（GET）</label>
-          <input id="inCustomUrl" type="text" placeholder="https://gw.example.com/api/usage">
+          <input id="inCustomUrl" type="text" placeholder="https://gw.example.com/api/usage" maxlength="500">
           <label>Bearer Token（可选）</label>
-          <input id="inCustomToken" type="password" placeholder="sk-…" autocomplete="off">
+          <input id="inCustomToken" type="password" placeholder="sk-…" autocomplete="off" maxlength="300">
           <label>字段映射（点号路径）</label>
-          <input id="inCustomMap" type="text" placeholder="used=data.used, limit=data.limit, resetAt=data.reset, label=额度">
+          <input id="inCustomMap" type="text" placeholder="used=data.used, limit=data.limit, resetAt=data.reset, label=额度" maxlength="500">
         </div>
 
         <div class="btnrow">
@@ -138,17 +140,34 @@
       <div class="card frm">
         <div class="mh"><span>外观与行为</span><b></b></div>
         <label>界面主题</label>
-        <select id="inTheme"><option value="light">白天玻璃（默认）</option><option value="dark">夜间玻璃</option></select>
+        <select id="inTheme"><option value="light">白天玻璃（默认）</option><option value="dark">夜间玻璃</option><option value="system">跟随系统</option></select>
         <label>小窗轮转间隔（秒 · 只配 1 家时自动静止）</label>
-        <input id="inRotate" type="number" min="3" max="30" value="5">
-        <label>额度刷新间隔（分钟）</label>
-        <input id="inRefresh" type="number" min="1" max="60" value="5">
+        <input id="inRotate" type="number" min="3" max="60" value="5">
+        <label>额度刷新间隔（分钟 · 1–1440，保存后即时生效）</label>
+        <input id="inRefresh" type="number" min="1" max="1440" value="5">
         <label class="chk"><input id="inTop" type="checkbox"> 窗口置顶（盖住其他程序）</label>
         <div class="hint">默认关闭：小窗贴在桌面层，浏览器等程序可正常盖住它；开启后才始终浮在最前。</div>
         <div class="btnrow">
           <button id="btnSaveAppearance">保存</button>
           <button id="btnRefreshNow">立即刷新</button>
         </div>
+        <div class="hint" id="apprHint">刷新间隔改动无需重启；隐藏窗口时会自动暂停后台轮询。</div>
+      </div>
+
+      <div class="card frm">
+        <div class="mh"><span>数据与提醒</span><b>本机优先</b></div>
+        <label>当月用量导出</label>
+        <div class="btnrow">
+          <button id="btnExportCsv">导出当月用量 CSV</button>
+        </div>
+        <div class="hint" id="exportHint">逐日 tokens / 估算成本 / 会话数 / 工具数，Excel 直接打开不乱码。</div>
+        <label class="chk"><input id="inAlertOn" type="checkbox" checked> 额度临界时推送系统通知</label>
+        <label>剩余低于多少 % 时提醒（1–50）</label>
+        <input id="inAlertPct" type="number" min="1" max="50" value="10">
+        <div class="btnrow">
+          <button id="btnSaveAlert">保存提醒设置</button>
+        </div>
+        <div class="hint" id="alertHint">同一额度窗同一天只提醒一次；演示数据不触发。</div>
       </div>
 
       <div class="card frm">
@@ -159,7 +178,7 @@
           <span class="upd-status" id="updateStatus">—</span>
         </div>
         <label>更新服务器地址（HTTP/HTTPS · 留空用官方源）</label>
-        <input id="updateUrlInput" type="text" placeholder="https://github.com/kmnn111/token-quota-widget/releases/latest/download">
+        <input id="updateUrlInput" type="text" maxlength="300" placeholder="https://github.com/kmnn111/token-quota-widget/releases/latest/download">
         <div class="btnrow">
           <button id="btnSaveUpdateUrl" class="ghost">保存更新源</button>
         </div>
@@ -187,7 +206,7 @@
     <!-- ================= 吸顶胶囊：280×64 文字|logo|环形图（方案 B） ================= -->
     <div class="pill" id="pill">
       <div class="pmid">
-        <div class="ptime" id="pTime">--:--<sup>--</sup></div>
+        <div class="ptime" id="pTime"><span id="pHm">--:--</span><sup id="pSec">--</sup></div>
         <div class="pdate"><span id="pDate">加载中</span><span id="pCount"></span></div>
         <div class="psubrow"><span class="chip" id="pChip">正在读取额度…</span><div class="pager" id="pPager"></div></div>
       </div>

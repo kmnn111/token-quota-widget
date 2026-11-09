@@ -3,10 +3,16 @@
    用 webContents.sendInputEvent 走真实输入命中链路（-webkit-app-region: drag
    吞点击的坑只有真实输入事件能复现，executeJavaScript 的合成 click 复现不了）。
    运行：env -u ELECTRON_RUN_AS_NODE npx electron design/test-click.js */
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 app.whenReady().then(async () => {
+  /* 最小 IPC mock：让渲染层启动时不打「No handler registered」噪声 */
+  ipcMain.handle('settings:get', () => ({ theme: 'light', rotateSeconds: 5, refreshMinutes: 5, trendingRange: 'daily', providers: [] }));
+  ipcMain.handle('settings:update', () => ({}));
+  ipcMain.handle('data:refresh', () => { });
+  ipcMain.handle('ext:open', () => true);
+  ipcMain.handle('update:state', () => ({ type: 'idle' }));
   const win = new BrowserWindow({
     width: 420, height: 840, frame: false, transparent: true, show: false,
     webPreferences: {
