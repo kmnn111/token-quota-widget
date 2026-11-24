@@ -6,9 +6,10 @@
 const mimo = require('./mimo');
 const local = require('./local-logs');
 const custom = require('./custom');
+const antigravity = require('./antigravity');
 const { fetchTrending } = require('./github-trending');
 
-const BUILTIN = { mimo, custom };
+const BUILTIN = { mimo, custom, antigravity };
 /* 内置「本机用量」永远参与（有日志就统计，没有就静默跳过） */
 
 /* ---------- 演示数据（未配置任何账号时的开箱视图） ---------- */
@@ -144,7 +145,7 @@ function createHub(settings, onSnapshot) {
     if (busy) return;
     busy = true;
     try {
-      const anyConfigured = (settings.providers || []).some(p => p.enabled !== false && ((p.cookie && p.type === 'mimo') || (p.apiKey && p.type === 'mimo') || (p.url && p.type === 'custom')));
+      const anyConfigured = (settings.providers || []).some(p => p.enabled !== false && ((p.cookie && p.type === 'mimo') || (p.apiKey && p.type === 'mimo') || (p.url && p.type === 'custom') || p.type === 'antigravity'));
       last = settings.demo === false || anyConfigured ? await realSnapshot(settings) : demoSnapshot();
       if (!anyConfigured && settings.demo !== false) last = demoSnapshot();
     } catch (e) {

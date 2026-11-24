@@ -51,6 +51,14 @@ function fmtTokensHtml(n) {        // HTML：数字 + 小号灰字（百万）
   const s = esc(fmtTokens(n)), u = unitZh(n);
   return u ? s + '<i class="uz">（' + u + '）</i>' : s;
 }
+/* 额度窗用量：token 走 K/M/B 中文标注；credits/cny 等直接显示整数千分位，避免「380 / 1.0K（千）」的错配 */
+function fmtWindowAmount(w, n) {
+  if (n == null) return '';
+  if (w && /^(credits|cny|points)$/i.test(String(w.unit || ''))) {
+    return Number(n).toLocaleString('zh-CN', { maximumFractionDigits: 0 });
+  }
+  return fmtTokensHtml(n);
+}
 function shortCountdown(iso) {
   if (!iso) return '长期';
   const ms = new Date(iso).getTime() - Date.now();
@@ -151,7 +159,7 @@ function renderPin(provs) {
     return `<div class="ql"><span>${esc(x.label)}</span>
         <b class="${left != null && left < 25 ? 'hot' : ''}">${left != null ? '剩余 ' + left + '%' : '—'}</b></div>
       <div class="bar ${barClass(left)}"><i style="width:${left != null ? Math.max(0, 100 - left) : 0}%"></i></div>`;
-  }).join('') + `<div class="qfoot"><span>${w[0] && w[0].used != null ? fmtTokensHtml(w[0].used) + ' / ' + fmtTokensHtml(w[0].limit) : ''}</span>
+  }).join('') + `<div class="qfoot"><span>${w[0] && w[0].used != null ? fmtWindowAmount(w[0], w[0].used) + ' / ' + fmtWindowAmount(w[0], w[0].limit) : ''}</span>
       <span>${p.balance ? '按量余额 ' + esc(p.balance.amount) + ' ' + esc(p.balance.currency || '') : countdown(w[0] && w[0].resetAt)}</span></div>`;
 }
 
@@ -166,7 +174,7 @@ function renderProviders(all) {
     const win = (p.windows || []).map(w => `
       <div class="ql"><span>${esc(w.label)}</span><b class="${w.leftPct != null && w.leftPct < 25 ? 'hot' : ''}">${w.leftPct != null ? '剩余 ' + w.leftPct + '%' : '—'}</b></div>
       <div class="bar ${barClass(w.leftPct)}"><i style="width:${w.leftPct != null ? 100 - w.leftPct : 0}%"></i></div>`).join('') ||
-      `<div class="ql"><span>${p.status === 'expired' ? '登录态失效' : p.status === 'error' ? esc(p.error || '请求失败').slice(0, 30) : '未配置'}</span></div>`;
+      `<div class="ql"><span>${p.status === 'expired' ? (p.type === 'antigravity' ? esc(String(p.error || 'IDE 未运行').slice(0, 30)) : '登录态失效') : p.status === 'error' ? esc(p.error || '请求失败').slice(0, 30) : '未配置'}</span></div>`;
     return `<div class="prov ${p.status === 'expired' || p.status === 'error' ? 'fog' : ''}">
       <span class="pdot" style="background:${safeColor(p.color)}"></span>
       <span class="pname">${esc(p.name)}</span>
@@ -371,9 +379,9 @@ function renderLimits() {
   $('limitsFull').innerHTML = provs.map(p => `
     <div class="card ${isMimoProv(p) ? 'mimo' : ''}">
       <div class="mh"><span style="color:${safeColor(p.color)}">${esc(p.name)}</span>
-        <b>${p.status === 'ok' || p.status === 'demo' ? esc(p.plan || '') : p.status === 'expired' ? '登录态失效' : esc(String(p.error || p.status || '未配置').slice(0, 26))}</b></div>
+        <b>${p.status === 'ok' || p.status === 'demo' ? esc(p.plan || '') : p.status === 'expired' ? (p.type === 'antigravity' ? esc(String(p.error || 'IDE 未运行').slice(0, 26)) : '登录态失效') : esc(String(p.error || p.status || '未配置').slice(0, 26))}</b></div>
       ${(p.windows || []).map(w => `
-        <div class="ql"><span>${esc(w.label)}${w.used != null ? ' · ' + fmtTokensHtml(w.used) + ' / ' + fmtTokensHtml(w.limit) : ''}</span>
+        <div class="ql"><span>${esc(w.label)}${w.used != null ? ' · ' + fmtWindowAmount(w, w.used) + ' / ' + fmtWindowAmount(w, w.limit) : ''}</span>
         <b class="${w.leftPct != null && w.leftPct < 25 ? 'hot' : ''}">${w.leftPct != null ? '剩余 ' + w.leftPct + '%' : '—'}</b></div>
         <div class="bar ${barClass(w.leftPct)}" style="margin-bottom:7px"><i style="width:${w.leftPct != null ? 100 - w.leftPct : 0}%"></i></div>
         <div class="qfoot" style="margin:0 0 6px"><span>${esc(countdown(w.resetAt))}</span><span>${w.resetType === 'session' ? '会话窗' : w.resetType === 'weekly' ? '周窗' : w.resetType === 'period' ? '周期窗' : ''}</span></div>`).join('')}
@@ -616,25 +624,34 @@ function saveProviders(next) {
   }).catch(() => { $('srcHint').textContent = '保存失败，请重试'; })
     .finally(() => { savingProviders = false; $('btnAddSrc').disabled = false; });
 }
+function srcMeta(p) {
+  if (p.type === 'antigravity') return { cls: 'antigravity', tag: 'Antigravity', def: 'Antigravity' };
+  if (p.type === 'mimo') return { cls: 'mimo', tag: 'MiMo', def: 'MiMo Token Plan' };
+  return { cls: 'custom', tag: '中转站', def: '自定义端点' };
+}
 function srcSummary(p) {
   if (p.type === 'mimo') {
     const bits = [p.hasApiKey ? 'API Key' : '', p.hasCookie ? 'Cookie' : ''].filter(Boolean);
     return bits.length ? bits.join(' + ') : '未配置凭据';
   }
+  if (p.type === 'antigravity') return p.port ? '手动端口 ' + p.port : '自动发现本机 · 无需登录';
   try { return new URL(p.url).host + (p.map && p.map.windows ? ' · 多额度窗' : ''); } catch (e) { return p.url || '未配置地址'; }
 }
 function renderSrcList() {
   const provs = settings.providers || [];
   $('srcCount').textContent = provs.length ? '已添加 ' + provs.length + ' 个' : '0 个';
   $('srcEmpty').style.display = provs.length ? 'none' : '';
-  $('srcList').innerHTML = provs.map(p => `
+  $('srcList').innerHTML = provs.map(p => {
+    const m = srcMeta(p);
+    return `
     <div class="src-item" data-id="${esc(p.id)}">
-      <span class="src-type t-${p.type === 'mimo' ? 'mimo' : 'custom'}">${p.type === 'mimo' ? 'MiMo' : '中转站'}</span>
-      <span class="src-main"><b>${esc(p.name || (p.type === 'mimo' ? 'MiMo Token Plan' : '自定义端点'))}</b>
+      <span class="src-type t-${m.cls}">${m.tag}</span>
+      <span class="src-main"><b>${esc(p.name || m.def)}</b>
         <i>${esc(srcSummary(p))}</i></span>
       <button class="src-edit" data-act="edit" title="编辑">✎</button>
       <button class="src-del" data-act="del" title="删除">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function setEditState(editing) {
   $('btnAddSrc').textContent = editing ? '保存修改' : '添加';
@@ -643,10 +660,12 @@ function setEditState(editing) {
 function syncTypeForm() {
   const t = $('inSrcType').value;
   $('frmMimo').style.display = t === 'mimo' ? '' : 'none';
+  $('frmAntigravity').style.display = t === 'antigravity' ? '' : 'none';
   $('frmCustom').style.display = t === 'custom' ? '' : 'none';
 }
 function clearForm() {
   $('inMimoKey').value = ''; $('inMimoCookie').value = '';
+  $('inAgyPort').value = '';
   $('inCustomName').value = ''; $('inCustomUrl').value = ''; $('inCustomToken').value = ''; $('inCustomMap').value = '';
 }
 let editingId = null;
@@ -669,6 +688,8 @@ $('srcList').addEventListener('click', e => {
     if (p.type === 'mimo') {
       $('inMimoKey').placeholder = p.hasApiKey ? '已配置 · 留空保持不变' : 'tp-xxxxxxxx';
       $('inMimoCookie').placeholder = p.hasCookie ? '已配置 · 留空保持不变' : 'api-platform_serviceToken=…; userId=…';
+    } else if (p.type === 'antigravity') {
+      $('inAgyPort').value = p.port || '';
     } else {
       $('inCustomName').value = p.name || '';
       $('inCustomUrl').value = p.url || '';
@@ -676,7 +697,7 @@ $('srcList').addEventListener('click', e => {
       $('inCustomToken').placeholder = p.hasToken ? '已配置 · 留空保持不变' : 'sk-…';
     }
     setEditState(true);
-    $('frmMimo').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    ($('frm' + p.type.charAt(0).toUpperCase() + p.type.slice(1)) || $('frmMimo')).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } else {
     /* 删除单条 */
     saveProviders((settings.providers || []).filter(x => x.id !== id)).then(() => {
@@ -702,6 +723,14 @@ $('btnAddSrc').addEventListener('click', () => {
     }
     if (apiKey) entry.apiKey = apiKey;
     if (cookie) entry.cookie = cookie;
+  } else if (type === 'antigravity') {
+    const port = Number($('inAgyPort').value);
+    if ($('inAgyPort').value.trim() && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+      $('inAgyPort').placeholder = '端口须为 1–65535（留空自动发现）'; return;
+    }
+    const n = provs.filter(x => x.type === 'antigravity').length + 1;
+    Object.assign(entry, { type: 'antigravity', name: 'Antigravity' + (n > 1 ? ' ' + n : '') });
+    if (port) entry.port = port; else delete entry.port;
   } else {
     const url = $('inCustomUrl').value.trim();
     if (!url) { $('inCustomUrl').placeholder = '请填写额度 JSON 地址'; return; }

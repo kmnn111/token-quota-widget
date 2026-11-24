@@ -1,5 +1,22 @@
 # 更新日志
 
+## 1.2.2 · 新增 Google Antigravity 本机遇额源 — 2026-11-24
+
+### 新功能
+- **Google Antigravity 数据源**：设置页「类型」新增「Google Antigravity（本机 IDE）」，添加后自动读取本机 Antigravity 的额度，无需登录或填密钥
+  - 显示三项额度：**AI Credits 月余额** + 各模型组的 **5 小时滚动剩余** / **每周剩余**（字段随版本弹性识别，能取到几个显示几个）
+  - 自动补全模型（gemini-2.5 系列）与主模型共享额度，自动跳过不重复计数
+  - 端口与 csrfToken 自动发现：优先读 `~/.gemini/antigravity/daemon/hub_*.json`，读不到从进程命令行提取并探测；高级用户可在表单里手动指定端口
+  - IDE 关闭时该卡片优雅显示「IDE 未运行」，不影响其他数据源
+- **额度单位显示修正**：credits / 余额类额度显示整数千分位（如 `380 / 1,000`），不再错套 token 的 K/M 单位
+
+### 技术说明
+- 采用 Connect RPC（`GetUserStatus`）读取本机语言服务器，自签证书放行；复刻开源 antigravity-usage 的本地链路，只读本机、不联网、不上传凭据
+- Google 未开放个人订阅的用量 API，网页「用量限制」页也无可读数字；Antigravity 本地服务是唯一能拿到具体剩余额度的入口
+
+### 回归
+新增 `design/test-antigravity.js`（端到端 mock RPC 9 项 PASS）+ v12 专项 4 项 AG UI 测试；全量回归：16 文件语法、v12 23 项、设置 11 项、点击 3 项、悬停 6 项、Win+D 保活、六视图 + AG 效果预览图全部核对通过。
+
 ## 1.2.1 · 修复吸顶小窗悬停展开失灵 — 2026-11-09
 
 ### 根因
