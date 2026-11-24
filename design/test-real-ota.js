@@ -1,13 +1,13 @@
 /* 真实官方源 OTA 升级链路验证（独立脚本，不改动产品代码）
-   把当前版本伪装成 v1.2.1，打 GitHub releases/latest/download，验证：
-   ① 能取到 latest.yml 并解析出 1.2.2  ② 判定为「有新版本」 ③ 安装包可下载且 sha512 校验通过
+   把当前版本伪装成 v1.2.2，打 GitHub releases/latest/download，验证：
+   ① 能取到 latest.yml 并解析出 1.2.3  ② 判定为「有新版本」 ③ 安装包可下载且 sha512 校验通过
    运行：env -u ELECTRON_RUN_AS_NODE ./node_modules/.bin/electron design/test-real-ota.js
 */
 const { app } = require('electron');
 const path = require('path');
 
 // 必须在 require('electron-updater') 之前覆盖：单例构造时会读取 app.version 并 parse
-app.getVersion = () => '1.2.1';
+app.getVersion = () => '1.2.2';
 // 本脚本在 design/ 下，electron 会把 appPath 定为脚本所在目录；
 // electron-updater 下载阶段要读根目录的 dev-app-update.yml，故指回项目根
 app.getAppPath = () => path.join(__dirname, '..');
@@ -26,7 +26,7 @@ app.whenReady().then(async () => {
 
   autoUpdater.on('checking-for-update', () => console.log('[real-ota] checking ...'));
   autoUpdater.on('update-available', info => {
-    sawAvailable = info && info.version === '1.2.2';
+    sawAvailable = info && info.version === '1.2.3';
     console.log('[real-ota] update-available:', JSON.stringify({
       version: info && info.version,
       size: info && info.files && info.files[0] && info.files[0].size,
