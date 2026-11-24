@@ -310,8 +310,8 @@ body.dark .src-item { background: var(--glass-soft); }
 .src-type.t-mimo { color: var(--mimo); background: color-mix(in srgb, var(--mimo) 14%, transparent); border: 1px solid color-mix(in srgb, var(--mimo) 32%, transparent); }
 .src-type.t-custom { color: #7d6bd8; background: rgba(125, 107, 216, .12); border: 1px solid rgba(125, 107, 216, .3); }
 body.dark .src-type.t-custom { color: #a99af0; }
-.src-type.t-antigravity { color: #2b8ea8; background: rgba(43, 142, 168, .12); border: 1px solid rgba(43, 142, 168, .3); }
-body.dark .src-type.t-antigravity { color: #7ec8e3; }
+.src-type.t-antigravity { color: #6b52a4; background: rgba(142, 117, 178, .14); border: 1px solid rgba(142, 117, 178, .32); }
+body.dark .src-type.t-antigravity { color: #c3b2e2; }
 .src-item .src-main { flex: 1; min-width: 0; }
 .src-item .src-main b { display: block; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .src-item .src-main i { display: block; font-style: normal; font-size: 9px; color: var(--ink3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

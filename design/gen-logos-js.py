@@ -11,6 +11,7 @@ OUT = os.path.join(os.path.dirname(BASE), 'renderer', 'logos.js')
 
 # 匹配表：正则(不区分大小写，匹配厂商 name+id) / slug(None=文字标) / 品牌色 / 小窗短名
 VENDORS = [
+    (r'google\s*ai|googleai|antigravity', 'googlegemini', '#8E75B2', 'Google AI'),
     (r'mimo|xiaomi|小米',            'xiaomi',      '#FF6900', '小米 MiMo'),
     (r'claude|anthropic',           'anthropic',   '#D97757', 'Claude'),
     (r'codex|openai|chatgpt|\bgpt\b','openai',      '#74AA9C', 'OpenAI Codex'),

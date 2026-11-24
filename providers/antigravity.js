@@ -228,13 +228,13 @@ function modelWindows(m) {
 
 /* ---------- 适配器主入口 ---------- */
 module.exports = {
-  id: 'antigravity',
-  name: 'Antigravity',
-  color: '#7ec8e3',
+  id: 'antigravity',          // 内部 type 保持兼容；对外统一显示 Google AI
+  name: 'Google AI',
+  color: '#8E75B2',
   async fetch(cfg) {
     const conn = await discover(cfg);
     if (!conn) {
-      throw Object.assign(new Error('IDE 未运行或本地服务未就绪'), { status: 'expired' });
+      throw Object.assign(new Error('Google AI 应用未运行或本地服务未就绪'), { status: 'expired' });
     }
     const client = conn.secure ? https : http;
     const status = await new Promise((resolve, reject) => {

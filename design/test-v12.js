@@ -161,7 +161,7 @@ app.whenReady().then(async () => {
   const expHint = await js(`document.getElementById('exportHint').textContent`);
   check('导出CSV', exportCalls === 1 && /已导出/.test(expHint), expHint.slice(0, 50));
 
-  /* ⑧b Antigravity 数据源：类型切换出专属表单、添加进清单、端口校验 */
+  /* ⑧b Google AI 数据源：类型切换出专属表单、添加进清单、端口校验 */
   await js(`(() => { const s=document.getElementById('inSrcType'); s.value='antigravity'; s.dispatchEvent(new Event('change',{bubbles:true})); })()`);
   await wait(120);
   const agyForm = await js(`(() => { const a=document.getElementById('frmAntigravity'); const m=document.getElementById('frmMimo'); const c=document.getElementById('frmCustom');
@@ -178,10 +178,13 @@ app.whenReady().then(async () => {
   const agyAdded = await js(`JSON.stringify(settings.providers||[])`);
   const agyList = JSON.parse(agyAdded).filter(p => p.type === 'antigravity');
   check('AG 添加数据源', agyList.length === 1 && !agyList[0].port, agyAdded.slice(0, 90));
-  const agyTag = await js(`(() => { const el=[...document.querySelectorAll('#srcList .src-item')].find(x=>x.textContent.includes('Antigravity')); return el ? el.querySelector('.src-type').className : ''; })()`);
+  const agyTag = await js(`(() => { const el=[...document.querySelectorAll('#srcList .src-item')].find(x=>x.textContent.includes('Google AI')); return el ? el.querySelector('.src-type').className : ''; })()`);
   check('AG 清单标签', /t-antigravity/.test(agyTag), agyTag);
+  const agyLogo = await js(`(() => { const l=window.logoFor('Google AI'); return JSON.stringify({display:l.display, brand:l.brand, mark:/<path/.test(l.svg)}); })()`);
+  const logoInfo = JSON.parse(agyLogo);
+  check('Google AI 星标图标', logoInfo.display === 'Google AI' && logoInfo.brand === '#8E75B2' && logoInfo.mark, agyLogo);
   /* 删掉，恢复空清单不影响后续测试 */
-  await js(`(() => { const el=[...document.querySelectorAll('#srcList .src-item')].find(x=>x.textContent.includes('Antigravity')); if(el) el.querySelector('[data-act=del]').click(); })()`);
+  await js(`(() => { const el=[...document.querySelectorAll('#srcList .src-item')].find(x=>x.textContent.includes('Google AI')); if(el) el.querySelector('[data-act=del]').click(); })()`);
   await wait(300);
 
   /* ⑨ 隐藏视图不重绘：切到设置页后给首页打标记，再推一帧数据 */

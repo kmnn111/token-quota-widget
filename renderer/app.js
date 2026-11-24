@@ -137,6 +137,12 @@ function renderMiniTrend() {
 function isMimoProv(p) {
   return !!p && (p.id === 'demo-mimo' || p.type === 'mimo' || /^mimo-/.test(p.id || '') || /mimo/i.test(p.name || ''));
 }
+/* 老配置里可能存着 Antigravity 字样；展示层统一改成 Google AI，内部 type 不动 */
+function provName(p) {
+  if (!p) return '数据源';
+  if (p.type === 'antigravity' || /antigravity/i.test(p.name || '')) return 'Google AI';
+  return p.name || '数据源';
+}
 function findPin(provs) {
   /* 不预设任何厂商：置顶卡直接展示第一个数据源（配置顺序） */
   return provs[0];
@@ -147,7 +153,7 @@ function renderPin(provs) {
   const card = $('pinCard');
   card.classList.toggle('mimo', isMimoProv(p));   // MiMo 橙色主题只给真实 MiMo 源
   card.classList.toggle('fog', p.status === 'expired' || p.status === 'error');
-  $('pinTitle').textContent = '额度 · ' + (p.name || '数据源');
+  $('pinTitle').textContent = '额度 · ' + provName(p);
   $('pinMeta').textContent = p.status === 'expired' ? '登录态失效 · 请更新凭据'
     : p.status === 'unconfigured' ? '未配置'
     : p.status === 'error' ? '请求失败'
@@ -174,10 +180,10 @@ function renderProviders(all) {
     const win = (p.windows || []).map(w => `
       <div class="ql"><span>${esc(w.label)}</span><b class="${w.leftPct != null && w.leftPct < 25 ? 'hot' : ''}">${w.leftPct != null ? '剩余 ' + w.leftPct + '%' : '—'}</b></div>
       <div class="bar ${barClass(w.leftPct)}"><i style="width:${w.leftPct != null ? 100 - w.leftPct : 0}%"></i></div>`).join('') ||
-      `<div class="ql"><span>${p.status === 'expired' ? (p.type === 'antigravity' ? esc(String(p.error || 'IDE 未运行').slice(0, 30)) : '登录态失效') : p.status === 'error' ? esc(p.error || '请求失败').slice(0, 30) : '未配置'}</span></div>`;
+      `<div class="ql"><span>${p.status === 'expired' ? (p.type === 'antigravity' ? esc(String(p.error || 'Google AI 未运行').slice(0, 30)) : '登录态失效') : p.status === 'error' ? esc(p.error || '请求失败').slice(0, 30) : '未配置'}</span></div>`;
     return `<div class="prov ${p.status === 'expired' || p.status === 'error' ? 'fog' : ''}">
       <span class="pdot" style="background:${safeColor(p.color)}"></span>
-      <span class="pname">${esc(p.name)}</span>
+      <span class="pname">${esc(provName(p))}</span>
       <span class="pwin">${win}</span>
       <span class="preset">${esc(countdown(p.windows && p.windows[0] && p.windows[0].resetAt))}</span>
     </div>`;
@@ -378,8 +384,8 @@ function renderLimits() {
   const provs = (snap && snap.snapshot && snap.snapshot.providers) || [];
   $('limitsFull').innerHTML = provs.map(p => `
     <div class="card ${isMimoProv(p) ? 'mimo' : ''}">
-      <div class="mh"><span style="color:${safeColor(p.color)}">${esc(p.name)}</span>
-        <b>${p.status === 'ok' || p.status === 'demo' ? esc(p.plan || '') : p.status === 'expired' ? (p.type === 'antigravity' ? esc(String(p.error || 'IDE 未运行').slice(0, 26)) : '登录态失效') : esc(String(p.error || p.status || '未配置').slice(0, 26))}</b></div>
+      <div class="mh"><span style="color:${safeColor(p.color)}">${esc(provName(p))}</span>
+        <b>${p.status === 'ok' || p.status === 'demo' ? esc(p.plan || '') : p.status === 'expired' ? (p.type === 'antigravity' ? esc(String(p.error || 'Google AI 未运行').slice(0, 26)) : '登录态失效') : esc(String(p.error || p.status || '未配置').slice(0, 26))}</b></div>
       ${(p.windows || []).map(w => `
         <div class="ql"><span>${esc(w.label)}${w.used != null ? ' · ' + fmtWindowAmount(w, w.used) + ' / ' + fmtWindowAmount(w, w.limit) : ''}</span>
         <b class="${w.leftPct != null && w.leftPct < 25 ? 'hot' : ''}">${w.leftPct != null ? '剩余 ' + w.leftPct + '%' : '—'}</b></div>
@@ -400,7 +406,7 @@ function buildRoster() {
       /* 该家最紧急的额度窗（剩余最低） */
       const w = p.windows.slice().sort((a, b) => (a.leftPct ?? 100) - (b.leftPct ?? 100))[0];
       return {
-        name: p.name, color: p.color, left: w.leftPct, resetAt: w.resetAt,
+        name: provName(p), color: p.color, left: w.leftPct, resetAt: w.resetAt,
         warn: w.leftPct != null && w.leftPct < 20,
         pinned: p === pinned
       };
@@ -625,7 +631,7 @@ function saveProviders(next) {
     .finally(() => { savingProviders = false; $('btnAddSrc').disabled = false; });
 }
 function srcMeta(p) {
-  if (p.type === 'antigravity') return { cls: 'antigravity', tag: 'Antigravity', def: 'Antigravity' };
+  if (p.type === 'antigravity') return { cls: 'antigravity', tag: 'Google AI', def: 'Google AI' };
   if (p.type === 'mimo') return { cls: 'mimo', tag: 'MiMo', def: 'MiMo Token Plan' };
   return { cls: 'custom', tag: '中转站', def: '自定义端点' };
 }
@@ -634,7 +640,7 @@ function srcSummary(p) {
     const bits = [p.hasApiKey ? 'API Key' : '', p.hasCookie ? 'Cookie' : ''].filter(Boolean);
     return bits.length ? bits.join(' + ') : '未配置凭据';
   }
-  if (p.type === 'antigravity') return p.port ? '手动端口 ' + p.port : '自动发现本机 · 无需登录';
+  if (p.type === 'antigravity') return p.port ? '手动端口 ' + p.port : '自动读取本机额度 · 无需登录';
   try { return new URL(p.url).host + (p.map && p.map.windows ? ' · 多额度窗' : ''); } catch (e) { return p.url || '未配置地址'; }
 }
 function renderSrcList() {
@@ -646,7 +652,7 @@ function renderSrcList() {
     return `
     <div class="src-item" data-id="${esc(p.id)}">
       <span class="src-type t-${m.cls}">${m.tag}</span>
-      <span class="src-main"><b>${esc(p.name || m.def)}</b>
+      <span class="src-main"><b>${esc(provName(p) === '数据源' ? m.def : provName(p))}</b>
         <i>${esc(srcSummary(p))}</i></span>
       <button class="src-edit" data-act="edit" title="编辑">✎</button>
       <button class="src-del" data-act="del" title="删除">✕</button>
@@ -729,7 +735,7 @@ $('btnAddSrc').addEventListener('click', () => {
       $('inAgyPort').placeholder = '端口须为 1–65535（留空自动发现）'; return;
     }
     const n = provs.filter(x => x.type === 'antigravity').length + 1;
-    Object.assign(entry, { type: 'antigravity', name: 'Antigravity' + (n > 1 ? ' ' + n : '') });
+    Object.assign(entry, { type: 'antigravity', name: 'Google AI' + (n > 1 ? ' ' + n : '') });
     if (port) entry.port = port; else delete entry.port;
   } else {
     const url = $('inCustomUrl').value.trim();

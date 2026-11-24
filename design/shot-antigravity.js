@@ -13,7 +13,7 @@ const iso = h => new Date(now + h * 3600e3).toISOString();
 
 /* 贴近真实 RPC 解析结果的快照（AI Credits 月 + 两个模型组的 5h/周） */
 const AG = {
-  id: 'antigravity-shot', name: 'Antigravity', color: '#7ec8e3',
+  id: 'antigravity-shot', name: 'Google AI', color: '#8E75B2',
   status: 'ok', plan: 'Google AI Pro', source: 'antigravity-local',
   updatedAt: now, error: '',
   windows: [
@@ -41,7 +41,7 @@ const snap = {
 app.whenReady().then(async () => {
   const settings = { demo: false, theme: 'light', refreshMinutes: 5, rotateSeconds: 5, rotateEnabled: true,
     showClock: true, alwaysOnTop: false, trendingEnabled: false, trendingRange: 'daily',
-    quotaAlert: true, quotaAlertPct: 10, providers: [{ id: AG.id, type: 'antigravity', name: 'Antigravity', enabled: true }] };
+    quotaAlert: true, quotaAlertPct: 10, providers: [{ id: AG.id, type: 'antigravity', name: 'Google AI', enabled: true }] };
   ipcMain.handle('settings:get', () => JSON.parse(JSON.stringify(settings)));
   ipcMain.handle('settings:update', (_e, patch) => Object.assign(settings, patch) && JSON.parse(JSON.stringify(settings)));
   ipcMain.handle('data:refresh', () => { });
@@ -69,5 +69,17 @@ app.whenReady().then(async () => {
   const img = await win.webContents.capturePage();
   fs.writeFileSync(out, img.toPNG());
   console.log('[agy-shot] saved', out);
+
+  await win.webContents.executeJavaScript(`document.querySelectorAll('.view').forEach(v=>v.classList.remove('on')); document.getElementById('vSettings').classList.add('on')`);
+  await wait(350);
+  const setOut = path.join(__dirname, '..', 'shot-out', 'google-ai-settings.png');
+  fs.writeFileSync(setOut, (await win.webContents.capturePage()).toPNG());
+  console.log('[agy-shot] saved', setOut);
+
+  await win.webContents.executeJavaScript(`document.querySelectorAll('.view').forEach(v=>v.classList.remove('on')); document.getElementById('vHome').classList.add('on'); document.getElementById('frame').classList.add('docked')`);
+  await wait(350);
+  const pillOut = path.join(__dirname, '..', 'shot-out', 'google-ai-pill.png');
+  fs.writeFileSync(pillOut, (await win.webContents.capturePage({ x: 70, y: 0, width: 280, height: 64 })).toPNG());
+  console.log('[agy-shot] saved', pillOut);
   app.exit(0);
 });
