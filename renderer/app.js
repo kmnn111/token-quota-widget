@@ -10,6 +10,7 @@ let snap = null;          // { snapshot:{providers,usage}, trending }
 let range = 'day';
 let roster = [];          // 小窗轮播名单
 let curIdx = 0, rotTimer = null, rotSignature = '';
+let pillAnim = null;      // 小窗平移动画句柄，连点时先取消上一帧，避免幽灵层堆叠
 let pillHovered = false, dockExpanded = false;   // 轮播暂停原因分开记，避免 dock 状态覆盖鼠标悬停
 let systemDark = false;   // 跟随系统主题
 let stateLabel = '已连接', lastDataAt = 0;
@@ -143,6 +144,13 @@ function provName(p) {
   if (p.type === 'antigravity' || /antigravity/i.test(p.name || '')) return 'Google AI';
   return p.name || '数据源';
 }
+/* Google AI 是订阅会员源：显示余量但不套「告急」语义（不推通知、不转琥珀/朱红） */
+function isSubscriptionQuota(p) {
+  return !!p && (p.type === 'antigravity' || /google\s*ai|antigravity/i.test(p.name || ''));
+}
+function quotaBarClass(p, left) {
+  return isSubscriptionQuota(p) ? 'calm' : barClass(left);
+}
 function findPin(provs) {
   /* 不预设任何厂商：置顶卡直接展示第一个数据源（配置顺序） */
   return provs[0];
@@ -163,8 +171,8 @@ function renderPin(provs) {
   $('pinBody').innerHTML = w.map(x => {
     const left = x.leftPct;
     return `<div class="ql"><span>${esc(x.label)}</span>
-        <b class="${left != null && left < 25 ? 'hot' : ''}">${left != null ? '剩余 ' + left + '%' : '—'}</b></div>
-      <div class="bar ${barClass(left)}"><i style="width:${left != null ? Math.max(0, 100 - left) : 0}%"></i></div>`;
+        <b class="${!isSubscriptionQuota(p) && left != null && left < 25 ? 'hot' : ''}">${left != null ? '剩余 ' + left + '%' : '—'}</b></div>
+      <div class="bar ${quotaBarClass(p, left)}"><i style="width:${left != null ? Math.max(0, 100 - left) : 0}%"></i></div>`;
   }).join('') + `<div class="qfoot"><span>${w[0] && w[0].used != null ? fmtWindowAmount(w[0], w[0].used) + ' / ' + fmtWindowAmount(w[0], w[0].limit) : ''}</span>
       <span>${p.balance ? '按量余额 ' + esc(p.balance.amount) + ' ' + esc(p.balance.currency || '') : countdown(w[0] && w[0].resetAt)}</span></div>`;
 }
@@ -178,8 +186,8 @@ function renderProviders(all) {
   $('provMeta').textContent = all.length + ' 家厂商 · ' + all.reduce((a, p) => a + (p.windows || []).length, 0) + ' 个额度窗';
   $('provList').innerHTML = provs.map(p => {
     const win = (p.windows || []).map(w => `
-      <div class="ql"><span>${esc(w.label)}</span><b class="${w.leftPct != null && w.leftPct < 25 ? 'hot' : ''}">${w.leftPct != null ? '剩余 ' + w.leftPct + '%' : '—'}</b></div>
-      <div class="bar ${barClass(w.leftPct)}"><i style="width:${w.leftPct != null ? 100 - w.leftPct : 0}%"></i></div>`).join('') ||
+      <div class="ql"><span>${esc(w.label)}</span><b class="${!isSubscriptionQuota(p) && w.leftPct != null && w.leftPct < 25 ? 'hot' : ''}">${w.leftPct != null ? '剩余 ' + w.leftPct + '%' : '—'}</b></div>
+      <div class="bar ${quotaBarClass(p, w.leftPct)}"><i style="width:${w.leftPct != null ? 100 - w.leftPct : 0}%"></i></div>`).join('') ||
       `<div class="ql"><span>${p.status === 'expired' ? (p.type === 'antigravity' ? esc(String(p.error || 'Google AI 未运行').slice(0, 30)) : '登录态失效') : p.status === 'error' ? esc(p.error || '请求失败').slice(0, 30) : '未配置'}</span></div>`;
     return `<div class="prov ${p.status === 'expired' || p.status === 'error' ? 'fog' : ''}">
       <span class="pdot" style="background:${safeColor(p.color)}"></span>
@@ -389,7 +397,7 @@ function renderLimits() {
       ${(p.windows || []).map(w => `
         <div class="ql"><span>${esc(w.label)}${w.used != null ? ' · ' + fmtWindowAmount(w, w.used) + ' / ' + fmtWindowAmount(w, w.limit) : ''}</span>
         <b class="${w.leftPct != null && w.leftPct < 25 ? 'hot' : ''}">${w.leftPct != null ? '剩余 ' + w.leftPct + '%' : '—'}</b></div>
-        <div class="bar ${barClass(w.leftPct)}" style="margin-bottom:7px"><i style="width:${w.leftPct != null ? 100 - w.leftPct : 0}%"></i></div>
+        <div class="bar ${quotaBarClass(p, w.leftPct)}" style="margin-bottom:7px"><i style="width:${w.leftPct != null ? 100 - w.leftPct : 0}%"></i></div>
         <div class="qfoot" style="margin:0 0 6px"><span>${esc(countdown(w.resetAt))}</span><span>${w.resetType === 'session' ? '会话窗' : w.resetType === 'weekly' ? '周窗' : w.resetType === 'period' ? '周期窗' : ''}</span></div>`).join('')}
       ${p.balance ? `<div class="qfoot" style="margin:0"><span>按量余额</span><span>${esc(p.balance.amount)} ${esc(p.balance.currency || '')}</span></div>` : ''}
     </div>`).join('') || '<div class="card"><div class="row"><span class="rk">尚未配置额度源 · 首页为演示数据</span></div></div>';
@@ -407,7 +415,7 @@ function buildRoster() {
       const w = p.windows.slice().sort((a, b) => (a.leftPct ?? 100) - (b.leftPct ?? 100))[0];
       return {
         name: provName(p), color: p.color, left: w.leftPct, resetAt: w.resetAt,
-        warn: w.leftPct != null && w.leftPct < 20,
+        warn: !isSubscriptionQuota(p) && w.leftPct != null && w.leftPct < 20,
         pinned: p === pinned
       };
     })
@@ -425,7 +433,8 @@ function renderPager() {
   el.querySelectorAll('i').forEach(dot => {
     dot.addEventListener('click', e => {
       e.stopPropagation();
-      paintPill(Number(dot.dataset.i), true);
+      const next = Number(dot.dataset.i);
+      paintPill(next, true, next >= curIdx ? 1 : -1);
       restartRotate();
     });
   });
@@ -437,8 +446,42 @@ function setRing(left, color) {
   fg.style.strokeDashoffset = (RING_C * (1 - (left == null ? 0 : left) / 100)).toFixed(2);
   $('pRingPct').textContent = left == null ? '--' : left;
 }
-function paintPill(i, animate) {
+/* 两家切换：旧帧向左淡出、新帧从右滑入；点前一个圆点时方向反过来。
+   用 WAAPI 跑合成器动画（不触发重排），连点先取消上一帧，幽灵层不堆叠。 */
+function playPillSlide(stroke, ghost, dir) {
   const pill = $('pill');
+  if (pillAnim) { try { pillAnim.cancel(); } catch (e) { } pillAnim = null; }
+  pill.querySelectorAll('.pstroke.ghost').forEach(n => n.remove());
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!ghost || reduce || typeof stroke.animate !== 'function' || typeof ghost.animate !== 'function') {
+    if (ghost) ghost.remove();
+    return;
+  }
+  const opt = { duration: 420, easing: 'cubic-bezier(.22, .7, .3, 1)', fill: 'none' };
+  const out = { duration: opt.duration, easing: opt.easing, fill: 'forwards' };
+  pill.appendChild(ghost);
+  pillAnim = stroke.animate([
+    { transform: `translateX(${dir * 26}px)`, opacity: 0 },
+    { transform: 'translateX(0)', opacity: 1 }
+  ], opt);
+  const ghostAnim = ghost.animate([
+    { transform: 'translateX(0)', opacity: 1 },
+    { transform: `translateX(${-dir * 26}px)`, opacity: 0 }
+  ], out);
+  ghostAnim.onfinish = () => ghost.remove();
+  ghostAnim.oncancel = () => ghost.remove();
+}
+function paintPill(i, animate, dir) {
+  const pill = $('pill');
+  if (pillAnim) { try { pillAnim.cancel(); } catch (e) { } pillAnim = null; }
+  pill.querySelectorAll('.pstroke.ghost').forEach(n => n.remove());
+  const stroke = $('pStroke');
+  const ghost = animate && stroke && roster.length > 1 ? stroke.cloneNode(true) : null;
+  if (ghost) {
+    ghost.classList.add('ghost');
+    ghost.removeAttribute('id');
+    ghost.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+  }
   if (!roster.length) {
     const lg0 = window.logoFor('额度窗', '#7b8aa5');
     pill.style.setProperty('--brand', lg0.brand);
@@ -463,13 +506,7 @@ function paintPill(i, animate) {
     dot.style.background = k === i ? lg.brand : '';
     dot.title = roster[k].name;
   });
-  if (animate) {
-    /* 三处动画一次性重启：只强制一次同步布局，避免连续 3 次 reflow 掉帧 */
-    const els = [pill.querySelector('.pmid'), $('pLogo'), $('pRing')].filter(Boolean);
-    els.forEach(el => el.classList.remove('swap'));
-    void pill.offsetWidth;
-    els.forEach(el => el.classList.add('swap'));
-  }
+  if (ghost) playPillSlide(stroke, ghost, dir || 1);
 }
 function restartRotate(force) {
   const sec = clampNum(settings.rotateSeconds, 3, 60, 5);
@@ -480,7 +517,7 @@ function restartRotate(force) {
   rotSignature = sig;
   /* 只有 1 家（或 0 家）完全静止：不显示分页点、不启动定时器 */
   if (roster.length < 2 || settings.rotateEnabled === false) return;
-  rotTimer = setInterval(() => { if (!rotatePaused()) paintPill((curIdx + 1) % roster.length, true); }, sec * 1000);
+  rotTimer = setInterval(() => { if (!rotatePaused()) paintPill((curIdx + 1) % roster.length, true, 1); }, sec * 1000);
 }
 
 /* ---------------- 时钟 / 数据新鲜度 ---------------- */
@@ -519,7 +556,7 @@ function renderHome(provs) {
 function renderAll() {
   const provs = (snap && snap.snapshot && snap.snapshot.providers) || [];
   const bad = provs.some(p => p.status === 'expired' || p.status === 'error');
-  const warn = provs.some(p => (p.windows || []).some(w => w.leftPct != null && w.leftPct < 20));
+  const warn = provs.some(p => !isSubscriptionQuota(p) && (p.windows || []).some(w => w.leftPct != null && w.leftPct < 20));
   $('stateDot').className = 'dot' + (bad ? ' err' : warn ? ' warn' : '');
   stateLabel = bad ? '部分源失效' : warn ? '有额度临界' : '已连接';
   updateFreshness();

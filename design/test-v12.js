@@ -183,6 +183,26 @@ app.whenReady().then(async () => {
   const agyLogo = await js(`(() => { const l=window.logoFor('Google AI'); return JSON.stringify({display:l.display, brand:l.brand, mark:/<path/.test(l.svg)}); })()`);
   const logoInfo = JSON.parse(agyLogo);
   check('Google AI 星标图标', logoInfo.display === 'Google AI' && logoInfo.brand === '#8E75B2' && logoInfo.mark, agyLogo);
+  /* 小窗切换：幽灵层出现后自动清理，不堆叠（测试环境默认 reduce-motion，临时关掉验证动画分支） */
+  await js(`window.__origMM=window.matchMedia; window.matchMedia=q=>q.includes('prefers-reduced-motion')?{matches:false}:window.__origMM(q); true`);
+  await js(`(() => { const d=document.querySelectorAll('#pPager i'); if(d[1]) d[1].click(); })()`);
+  const ghostNow = await js(`document.querySelectorAll('.pstroke.ghost').length`);
+  /* 隐藏窗口的 WAAPI 不推进，下一帧数据刷新会走 paintPill 的清理路径 */
+  win.webContents.send('data:update', sendSnap());
+  await wait(250);
+  const ghostAfter = await js(`document.querySelectorAll('.pstroke.ghost').length`);
+  const motion = await js(`JSON.stringify({chip:document.getElementById('pChip').textContent, dots:document.querySelectorAll('#pPager i').length})`);
+  await js(`window.matchMedia=window.__origMM; delete window.__origMM`);
+  check('小窗平滑动效', ghostNow === 1 && ghostAfter === 0, `${ghostNow}/${ghostAfter} ${motion}`);
+  /* 订阅会员源低余量：数字照常显示，但不进「告急」语义 */
+  const lowSnap = { snapshot: { providers: [{ id: 'agy-low', type: 'antigravity', name: 'Google AI', color: '#8E75B2', status: 'ok', source: 'antigravity-local', plan: 'Google AI Pro', windows: [{ label: 'AI Credits · 本月', used: 950, limit: 1000, leftPct: 5, unit: 'credits', resetAt: null, resetType: 'monthly' }], balance: null }], usage: { day: 0, month: 0, total: 0, costDay: '', costMonth: '', perDay: {}, perDayInfo: {}, tools: [], sessions: [] }, at: Date.now() }, trending: { items: [] }, at: Date.now() };
+  win.webContents.send('data:update', lowSnap);
+  await wait(350);
+  const subWarn = await js(`JSON.stringify({ chip:document.getElementById('pChip').classList.contains('warn'), ring:document.getElementById('pRingFg').style.stroke, state:document.getElementById('stateTxt').textContent, bar:[...document.querySelectorAll('#pinBody .bar')].map(x=>x.className) })`);
+  const sw = JSON.parse(subWarn);
+  check('Google AI 低余量不告急', !sw.chip && !/var\(--warn\)/.test(sw.ring) && !/有额度临界/.test(sw.state) && !sw.bar.some(c => /warn|danger/.test(c)), subWarn);
+  win.webContents.send('data:update', sendSnap());
+  await wait(250);
   /* 删掉，恢复空清单不影响后续测试 */
   await js(`(() => { const el=[...document.querySelectorAll('#srcList .src-item')].find(x=>x.textContent.includes('Google AI')); if(el) el.querySelector('[data-act=del]').click(); })()`);
   await wait(300);

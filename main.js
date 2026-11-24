@@ -665,8 +665,13 @@ function pushSystemTheme() {
 }
 nativeTheme.on('updated', pushSystemTheme);
 
+/* 订阅会员源（Google AI）：额度数字照常展示，但不参与「告急」提醒 */
+function isSubscriptionQuota(p) {
+  return !!p && (p.type === 'antigravity' || /google\s*ai|antigravity/i.test(p.name || ''));
+}
+
 /* 额度临界预警：某真实数据源剩余跌破阈值时推一次系统通知。
-   去重键 = 源 + 额度窗 + 当天 + 阈值档，避免每 5 分钟轮询反复轰炸；演示数据不提醒。 */
+   去重键 = 源 + 额度窗 + 当天 + 阈值档，避免每 5 分钟轮询反复轰炸；演示数据与订阅会员源不提醒。 */
 function checkQuotaAlerts(snap) {
   if (SHOT_MODE || settings.quotaAlert === false || !snap || !snap.snapshot) return;
   const pct = Math.min(50, Math.max(1, Number(settings.quotaAlertPct) || 10));
@@ -678,7 +683,7 @@ function checkQuotaAlerts(snap) {
   }
   let changed = false;
   for (const p of (snap.snapshot.providers || [])) {
-    if (!p || p.source === 'demo' || p.status === 'error' || p.status === 'expired') continue;
+    if (!p || p.source === 'demo' || isSubscriptionQuota(p) || p.status === 'error' || p.status === 'expired') continue;
     for (const w of (p.windows || [])) {
       if (w.leftPct == null || w.leftPct > pct) continue;
       const key = [p.id || p.name, w.label, today, pct].join('|');

@@ -228,6 +228,7 @@ body.dark .bottombar button.on { background: rgba(255, 255, 255, .13); box-shado
 .pill {
   position: absolute; left: 70px; top: 0; width: 280px; height: 64px; border-radius: 20px;
   display: flex; align-items: center; gap: 8px; padding: 0 12px;
+  overflow: hidden;
   opacity: 0; pointer-events: none;
   cursor: move;
   /* 玻璃 38% 透明 + 当前厂商品牌色渐变底（--brand 由渲染层按帧注入） */
@@ -275,8 +276,8 @@ body.dark .pager i { background: rgba(255, 255, 255, .28); }
 .pright { text-align: right; flex: none; }
 .prrow { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 3px; }
   .prsub { font-size: 9.5px; color: var(--ink2); }
-@keyframes slideIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
-.swap { animation: slideIn .34s cubic-bezier(.22, .7, .3, 1); }
+.pstroke { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 8px; position: relative; will-change: transform, opacity; }
+.pstroke.ghost { position: absolute; inset: 0; z-index: 2; pointer-events: none; will-change: transform, opacity; }
 
 /* ============ 设置表单 ============ */
 .frm label { display: block; font-size: 10px; color: var(--ink3); margin: 10px 0 4px; letter-spacing: .06em; }

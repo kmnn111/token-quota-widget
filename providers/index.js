@@ -99,10 +99,10 @@ async function realSnapshot(settings) {
     jobs.push((async () => {
       try {
         const r = await mod.fetch(cfg);
-        return { id: cfg.id, name: cfg.name || mod.name, color: cfg.color || mod.color, status: 'ok', plan: r.plan || '', windows: r.windows || [], balance: r.balance || null, source: r.source, updatedAt: Date.now(), error: '' };
+        return { id: cfg.id, type: cfg.type, name: cfg.name || mod.name, color: cfg.color || mod.color, status: 'ok', plan: r.plan || '', windows: r.windows || [], balance: r.balance || null, source: r.source, updatedAt: Date.now(), error: '' };
       } catch (e) {
         return {
-          id: cfg.id, name: cfg.name || mod.name, color: cfg.color || mod.color,
+          id: cfg.id, type: cfg.type, name: cfg.name || mod.name, color: cfg.color || mod.color,
           status: e.status === 'expired' ? 'expired' : (e.status === 'unconfigured' ? 'unconfigured' : 'error'),
           plan: '', windows: [], balance: null, source: '', updatedAt: Date.now(), error: e.message
         };
